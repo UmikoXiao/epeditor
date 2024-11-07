@@ -1,0 +1,12 @@
+TS = "timestep"
+H = "hourly"
+D = "daily"
+M = "monthly"
+A = "annual"
+RP = "runperiod"
+
+FREQUENCY = "frequency"
+VARIABLE = "variable"
+KEY = "key"
+TYPE = "type"
+UNITS = "units"

@@ -1,0 +1,64 @@
+
+Conversion 8.9 => 9.0
+ Starting new Transition.audit
+ Will create new full IDFs
+ Will create new IDF lines with units where applicable
+ Will create new IDF lines leaving blank incoming fields as blank (no default fill)
+ Processing IDF -- C:\Users\Umiko\PycharmProjects\IDFprocessing\project\baseline_V890.idf
+   ** Warning ** Run period start day of week USEWEATHERFILE option has been removed, start week day is set by the input start date.
+
+Conversion 9.0 => 9.1
+ Starting new Transition.audit
+ Will create new full IDFs
+ Will create new IDF lines with units where applicable
+ Will create new IDF lines leaving blank incoming fields as blank (no default fill)
+ Processing IDF -- C:\Users\Umiko\PycharmProjects\IDFprocessing\project\baseline_V890.idf
+
+Conversion 9.1 => 9.2
+ Starting new Transition.audit
+ Will create new full IDFs
+ Will create new IDF lines with units where applicable
+ Will create new IDF lines leaving blank incoming fields as blank (no default fill)
+ Processing IDF -- C:\Users\Umiko\PycharmProjects\IDFprocessing\project\baseline_V890.idf
+
+Conversion 9.2 => 9.3
+ Starting new Transition.audit
+ Will create new full IDFs
+ Will create new IDF lines with units where applicable
+ Will create new IDF lines leaving blank incoming fields as blank (no default fill)
+ Processing IDF -- C:\Users\Umiko\PycharmProjects\IDFprocessing\project\baseline_V890.idf
+
+Conversion 9.3 => 9.4
+ Starting new Transition.audit
+ Will create new full IDFs
+ Will create new IDF lines with units where applicable
+ Will create new IDF lines leaving blank incoming fields as blank (no default fill)
+ Processing IDF -- C:\Users\Umiko\PycharmProjects\IDFprocessing\project\baseline_V890.idf
+
+Conversion 9.4 => 9.5
+ Starting new Transition.audit
+ Will create new full IDFs
+ Will create new IDF lines with units where applicable
+ Will create new IDF lines leaving blank incoming fields as blank (no default fill)
+ Processing IDF -- C:\Users\Umiko\PycharmProjects\IDFprocessing\project\baseline_V890.idf
+
+Conversion 9.5 => 9.6
+ Starting new Transition.audit
+ Will create new full IDFs
+ Will create new IDF lines with units where applicable
+ Will create new IDF lines leaving blank incoming fields as blank (no default fill)
+ Processing IDF -- C:\Users\Umiko\PycharmProjects\IDFprocessing\project\baseline_V890.idf
+
+Conversion 9.6 => 22.1
+ Starting new Transition.audit
+ Will create new full IDFs
+ Will create new IDF lines with units where applicable
+ Will create new IDF lines leaving blank incoming fields as blank (no default fill)
+ Processing IDF -- C:\Users\Umiko\PycharmProjects\IDFprocessing\project\baseline_V890.idf
+
+Conversion 22.1 => 22.2
+ Starting new Transition.audit
+ Will create new full IDFs
+ Will create new IDF lines with units where applicable
+ Will create new IDF lines leaving blank incoming fields as blank (no default fill)
+ Processing IDF -- C:\Users\Umiko\PycharmProjects\IDFprocessing\project\baseline_V890.idf
