@@ -1,4 +1,5 @@
 _epeditortemp/
 .idea/
-epeditor/__pycache__/
-epeidtor/idd/
+**/__pycache__/
+**/__pycache__/
+**/idd/

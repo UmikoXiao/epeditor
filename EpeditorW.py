@@ -4,14 +4,10 @@ import os
 
 QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
 
-# 转绝对路径更稳妥
-path_to_add = os.path.abspath('.')
 
-# 放最前面，优先级最高
+path_to_add = os.path.abspath('.')
 sys.path.insert(0, path_to_add)
 
-# 或放末尾
-# sys.path.append(path_to_add)
 import epeditor
 import ui
 from ui import main, event

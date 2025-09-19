@@ -261,30 +261,34 @@ def return_callback(msg):
     print(msg)
 
 
-def simulate_file(idf_path: str, epw: str, idd: str = None, overwrite=False, verbose='q', cpu_index=None, **kwargs):
-    def _processing(idf_path: str, epw: str, idd: str = None, overwrite=False, **kwargs):
+def simulate_file(idf_path: str, epw: str, idd: str = None, overwrite=False, verbose='q', cpu_index=None,long_dir=False, **kwargs):
+    def _processing(idf_path: str, epw: str, idd: str = None, overwrite=False,long_dir=False, **kwargs):
         if not check_installation(idf_path):
             return f'Energyplus Ver.{get_version(idf_path)} is not yet installed.'
         if idd is None:
             idd = get_idd(idf_path)
         IDF.setiddname(idd)
-        new_idf_path = os.path.join(idf_path[:-4], os.path.basename(epw)) + '.idf'
-        if os.path.exists(idf_path[:-4]):
+        if long_dir:
+            target_dir = idf_path[:-4] +"+"+ os.path.basename(epw)[:-4]
+        else:
+            target_dir = idf_path[:-4]
+        new_idf_path = os.path.join(target_dir, os.path.basename(epw)[:-4]) + '.idf'
+        if os.path.exists(target_dir):
             if os.path.exists(new_idf_path + '.start'):
                 return ""
 
             if overwrite:
-                shutil.rmtree(idf_path[:-4])
-                os.mkdir(idf_path[:-4])
+                shutil.rmtree(target_dir)
+                os.mkdir(target_dir)
 
             elif os.path.exists(new_idf_path[:-4] + '.sql'):
                 return f'**********Result Already Exist. Skip:{new_idf_path}'
         else:
-            os.mkdir(idf_path[:-4])
+            os.mkdir(target_dir)
 
         print(f'Case Start:{idf_path}')
         shutil.copy(idf_path, new_idf_path)
-        idf = IDF(new_idf_path, epw=epw)
+        idf = IDF(new_idf_path)
         if len(idf.idfobjects['Output:SQLite']) == 0:
             sql = idf.newidfobject('Output:SQLite')
             sql.Option_Type = 'Simple'
@@ -339,25 +343,25 @@ def simulate_file(idf_path: str, epw: str, idd: str = None, overwrite=False, ver
     if os.path.isfile(idf_path) and os.path.exists(idf_path):
         if verbose == 's':
             with hiddenPrint() as log:
-                new_idf_path = _processing(idf_path, epw, idd, overwrite, **kwargs)
+                new_idf_path = _processing(idf_path, epw, idd, overwrite,long_dir, **kwargs)
                 log.dump(new_idf_path[:-4] + '.log')
                 msg = ''
         else:
-            msg = _processing(idf_path, epw, idd, overwrite, **kwargs)
+            msg = _processing(idf_path, epw, idd, overwrite,long_dir, **kwargs)
         return msg
     else:
         return f'IDF not found: {idf_path}'
 
 
-def simulate_sequence(idfs: list, epw: str, idd: str = None, overwrite=False, verbose='q', cpu_index=None, **kwargs):
+def simulate_sequence(idfs: list, epw: str, idd: str = None, overwrite=False, verbose='q', cpu_index=None,long_dir=False, **kwargs):
     import time
     t1 = time.time()
     for idf_path in idfs:
         if os.path.isfile(idf_path):
             if occupy(idf_path): continue
-            simulate_file(idf_path, epw, idd, overwrite, verbose, cpu_index, **kwargs)
+            simulate_file(idf_path, epw, idd, overwrite, verbose, cpu_index,long_dir, **kwargs)
         elif isinstance(idf_path, IDF):
-            simulate_file(idf_path.idfabsname, epw, idd, overwrite, verbose, cpu_index, **kwargs)
+            simulate_file(idf_path.idfabsname, epw, idd, overwrite, verbose, cpu_index,long_dir, **kwargs)
     print(f'**********Sequence on CPU:{cpu_index} Done**********')
     print("duration:", time.time() - t1)
 
@@ -365,31 +369,41 @@ def simulate_sequence(idfs: list, epw: str, idd: str = None, overwrite=False, ve
 def simulate_local(idf_path: str, epw: str, idd: str = None, overwrite=False, stdout=sys.stdout, verbose='q',
                    prs_count=7, forceCPU=False, **kwargs):
     sys.stdout = stdout
+    if isinstance(idf_path, IDF):
+        idf_path = idf_path.idfabsname
     if os.path.isfile(idf_path):
-        return simulate_file(idf_path, epw, idd, overwrite, verbose)
-    elif isinstance(idf_path, IDF):
-        return simulate_file(idf_path.idfabsname, epw, idd, overwrite, verbose)
+        if isinstance(epw,list):
+            for epwi in epw:
+                return simulate_file(idf_path, epwi, idd, overwrite, verbose,long_dir=True)
+        else:
+            return simulate_file(idf_path, epw, idd, overwrite, verbose, long_dir=True)
     elif os.path.isdir(idf_path):
         prs_pool = Pool(prs_count)
-        if prs_count <= os.cpu_count() and forceCPU:
-            idfs = [os.path.join(idf_path, file) for file in os.listdir(idf_path)]
-            idfs = [idf for idf in idfs if idf.endswith('.idf')]
-
-            for cpu_index in range(1, prs_count + 1):
-                # st = (cpu_index - 1) * np.floor(len(idfs) / prs_count)
-                # ed = cpu_index * np.floor(len(idfs) / prs_count) if cpu_index < prs_count else len(idfs)
-                prs_pool.apply_async(func=simulate_sequence,
-                                     args=(idfs[cpu_index - 1:], epw, idd, overwrite, verbose, cpu_index,),
-                                     callback=return_callback,
-                                     error_callback=error_callback)
-
+        if isinstance(epw,list):
+            long_dir = True
         else:
-            for file in os.listdir(idf_path):
-                file = os.path.join(idf_path, file)
-                prs_pool.apply_async(func=simulate_file,
-                                     args=(file, epw, idd, overwrite, verbose, None,),
-                                     callback=return_callback,
-                                     error_callback=error_callback)
+            epw = [epw]
+            long_dir = False
+        for epwi in epw:
+            if prs_count <= os.cpu_count() and forceCPU:
+                idfs = [os.path.join(idf_path, file) for file in os.listdir(idf_path)]
+                idfs = [idf for idf in idfs if idf.endswith('.idf')]
+
+                for cpu_index in range(1, prs_count + 1):
+                    # st = (cpu_index - 1) * np.floor(len(idfs) / prs_count)
+                    # ed = cpu_index * np.floor(len(idfs) / prs_count) if cpu_index < prs_count else len(idfs)
+                    prs_pool.apply_async(func=simulate_sequence,
+                                         args=(idfs[cpu_index - 1:], epwi, idd, overwrite, verbose, cpu_index,long_dir,),
+                                         callback=return_callback,
+                                         error_callback=error_callback)
+
+            else:
+                for file in os.listdir(idf_path):
+                    file = os.path.join(idf_path, file)
+                    prs_pool.apply_async(func=simulate_file,
+                                         args=(file, epwi, idd, overwrite, verbose, None,long_dir,),
+                                         callback=return_callback,
+                                         error_callback=error_callback)
         prs_pool.close()
         prs_pool.join()
         idfstart = [os.path.join(idf_path, file) for file in os.listdir(idf_path) if file.endswith('.idfstart')]
