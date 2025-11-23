@@ -37,6 +37,19 @@ def smb_port_open(ip: str, port=445, timeout=2) -> bool:
 
 def share_exists(ip: str) -> bool:
     """
+    Test connectivity to an SMB server by checking if a share exists.
+    
+    Parameters
+    ----------
+    ip : str
+        The IP address of the SMB server to test connectivity to.
+    
+    Returns
+    -------
+    bool
+        True if the SMB share is accessible (command succeeded), False otherwise.
+    """
+    """
     test connectivity to smb server
     """
     cmd = f'net view \\\\{ip}'
@@ -47,6 +60,22 @@ def share_exists(ip: str) -> bool:
 
 
 def test_connect(target_ip: str, timeout=2) -> bool:
+    """
+    Test connection to a target IP by checking host availability, SMB port status, and share access.
+    
+    Parameters
+    ----------
+    target_ip : str
+        The IP address of the target host to connect to.
+    timeout : int, default=2
+        Timeout in seconds for connection attempts.
+    
+    Returns
+    -------
+    bool
+        True if connection is successful (host is up, SMB port is open, and share is accessible),
+        False otherwise.
+    """
     if not host_up(target_ip):
         print('loss connection to', target_ip)
         return False

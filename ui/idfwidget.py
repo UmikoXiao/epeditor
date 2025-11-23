@@ -15,6 +15,22 @@ frequencies = {
 
 class redirectQWidget(QtWidgets.QWidget):
     def __init__(self, parent, window, prj):
+        """
+        Initialize the searchWidget instance.
+        
+        Parameters
+        ----------
+        parent : QWidget
+            Parent widget to which this widget belongs.
+        window : QMainWindow
+            Main application window associated with this widget.
+        prj : project
+            Project instance containing data and settings for the application.
+        
+        Returns
+        -------
+        None
+        """
         super(redirectQWidget, self).__init__(parent=parent)
         self.prj: project = prj
         self.mainWindow = window
@@ -22,6 +38,22 @@ class redirectQWidget(QtWidgets.QWidget):
 
 class searchWidget(redirectQWidget):
     def __init__(self, parent, window, prj):
+        """
+        Initialize the search widget with UI components and layout for searching and comparing items.
+        
+        Parameters
+        ----------
+        parent : QtWidgets.QWidget
+            Parent widget to which this search widget belongs.
+        window : object
+            Main window or container window object that manages this widget.
+        prj : object
+            Project object containing data and configurations used by the widget.
+        
+        Returns
+        -------
+        None
+        """
         super(searchWidget, self).__init__(parent, window, prj)
 
         self.label_class = QtWidgets.QLabel(self)
@@ -108,6 +140,24 @@ class searchWidget(redirectQWidget):
         self.compareButton.clicked.connect(self.compareIDF)
 
     def compareIDF(self):
+        """
+        Compare the current project's IDF model with a user-selected baseline IDF file.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. Expected to have 
+            attributes `prj` (project object with `model` and `tempFolder`), 
+            `mainWindow` (with `groupEditorArea`), and helper methods `_create_SearchResultLayout`.
+        
+        Returns
+        -------
+        None
+            This function does not return a value. It opens a file dialog, computes 
+            differences between IDF models, displays results in a search layout, and 
+            launches a group editor interface if successful. Errors are caught and 
+            printed to stdout.
+        """
         try:
             if self.prj.model is not None:
                 filePath, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Select the baseline *.idf file", "./",
@@ -129,6 +179,19 @@ class searchWidget(redirectQWidget):
         except Exception as e:
             print(traceback.format_exc())
     def _create_SearchResultLayout(self, result: list):
+        """
+        Create a grid layout for displaying search results in the SearchResultLayout.
+        
+        Parameters
+        ----------
+        result : list
+            A list of items to be displayed in the search result layout. Each item is used to create a corresponding widget.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It modifies the layout and geometry of the SearchResultLayout and associated widgets.
+        """
         columns = 2
         itemWidth, itemHeight = self.searchResultWidget.width()/columns, rowHight*2
         row_num = np.ceil(len(result) / columns)
@@ -156,6 +219,22 @@ class searchWidget(redirectQWidget):
             self.SearchResultLayout.addWidget(emptyBox(self.SearchResultLayout,0,1))
             # 其他 item 类型同理处理
     def click_search(self):
+        """
+        Handle search operation based on class, name, and field input strings.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the relateSearchWidget class, containing UI elements and project model.
+            Expected to have attributes: classText, nameText, fieldText (text input fields),
+            and prj (project object with a model attribute).
+        
+        Returns
+        -------
+        None
+            This function does not return a value. It performs a side effect by creating a search result layout
+            if the search is successful, or prints an exception traceback if an error occurs.
+        """
         try:
             class_str = self.classText.text().strip()
             name_str = self.nameText.text().strip()
@@ -173,6 +252,22 @@ class searchWidget(redirectQWidget):
 
 class relateSearchWidget(redirectQWidget):
     def __init__(self, parent, window, prj):
+        """
+        Initialize the relateSearchWidget with parent, window, and project context.
+        
+        Parameters
+        ----------
+        parent : QWidget
+            Parent widget to which this widget belongs.
+        window : QMainWindow
+            Main application window instance providing UI context and functionality.
+        prj : object
+            Project object containing data and settings relevant to the current session.
+        
+        Returns
+        -------
+        None
+        """
         super(relateSearchWidget, self).__init__(parent, window, prj)
         _translate = QtCore.QCoreApplication.translate
         self.noticenode = QtWidgets.QLabel('* Right click on any elements to show the related idfobjects.')
@@ -218,11 +313,48 @@ class relateSearchWidget(redirectQWidget):
         self.clearbuttonNode.clicked.connect(self.click_Clear_Node)
 
     def click_Clear_Node(self):
+        """
+        Clear the grid in the relate processing area.
+        
+        This method clears all content from the grid within the relate processing area
+        by calling its clearGrid method.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the relateProcessingArea attribute.
+        
+        Returns
+        -------
+        None
+            This method does not return any value.
+        """
+        """Clear the grid in the relate processing area.
+        
+                This method clears all content from the grid within the relate processing area
+                by calling its clearGrid method.
+                """
         self.relateProcessingArea.clearGrid()
 
 
 class relatedResultWidget(redirectQWidget):
     def __init__(self, parent, window, prj):
+        """
+        Initialize the relatedResultWidget with parent, window, and project settings.
+        
+        Parameters
+        ----------
+        parent : QWidget
+            Parent widget to which this widget belongs.
+        window : QWidget
+            Main window or container widget associated with this widget.
+        prj : object
+            Project object containing configuration and data for the application.
+        
+        Returns
+        -------
+        None
+        """
         super(relatedResultWidget, self).__init__(parent, window, prj)
         self.setAcceptDrops(True)
         # self.setMouseTracking(True)
@@ -234,6 +366,21 @@ class relatedResultWidget(redirectQWidget):
         self.gridlayout.setObjectName("NodeGridLayout")
 
     def initEmptyBoard(self):
+        """
+        Initialize an empty board grid based on current widget dimensions.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. Expected to have
+            attributes `gridlayout`, `width()`, `height()`, `itemwidth`, 
+            `itemheight`, `add_emptybox()`, and `arrange()`.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         self.gridlayout.columns = int(np.floor(self.width() / self.itemwidth))
         self.gridlayout.rows = int(np.floor(self.height() / self.itemheight))
         for i in range(self.gridlayout.rows):
@@ -242,10 +389,39 @@ class relatedResultWidget(redirectQWidget):
         self.arrange()
 
     def add_emptybox(self, i, j):
+        """
+        Add an empty box widget to the grid layout at the specified position.
+        
+        Parameters
+        ----------
+        i : int
+            Row index where the empty box will be placed in the grid layout.
+        j : int
+            Column index where the empty box will be placed in the grid layout.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         emptyblock = emptyBox(self, i, j, itemheight=self.itemheight)
         self.gridlayout.addWidget(emptyblock, i, j)
 
     def removeitem(self, i, j):
+        """
+        Remove the item at the specified position (i, j) in the grid layout.
+        
+        Parameters
+        ----------
+        i : int
+            Row index of the item to remove.
+        j : int
+            Column index of the item to remove.
+        
+        Returns
+        -------
+        None
+        """
         try:
             item = self.gridlayout.itemAtPosition(i, j)
             self.gridlayout.removeItem(item)
@@ -255,12 +431,42 @@ class relatedResultWidget(redirectQWidget):
             return
 
     def clearGrid(self):
+        """
+        Clears the grid by removing all items and replacing them with empty boxes.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the grid layout. It is expected to have
+            a `gridlayout` attribute with `rows` and `columns` properties, and methods
+            `removeitem(i, j)` and `add_emptybox(i, j)`.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         for i in range(self.gridlayout.rows):
             for j in range(self.gridlayout.columns):
                 self.removeitem(i, j)
                 self.add_emptybox(i, j)
 
     def arrange(self):
+        """
+        Arrange the grid layout by setting row and column stretch factors and minimum dimensions.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the grid layout and associated attributes.
+            Expected to have a `gridlayout` attribute with `rows` and `columns` properties,
+            and `itemheight` and `itemwidth` attributes defining the minimum height and width.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         for i in range(self.gridlayout.rows):
             self.gridlayout.setRowStretch(i, 10)
             self.gridlayout.setRowMinimumHeight(i, self.itemheight)
@@ -269,6 +475,22 @@ class relatedResultWidget(redirectQWidget):
             self.gridlayout.setColumnMinimumWidth(j, self.itemwidth)
 
     def expenddgridrow(self):
+        """
+        Expand the grid layout by adding a new row of empty boxes.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. It is expected to have
+            attributes `gridlayout`, `itemwidth`, `itemheight`, and methods `add_emptybox`
+            and `arrange`. The `gridlayout` should have attributes `rows` and `columns`.
+        
+        Returns
+        -------
+        None
+            This function does not return a value. It modifies the grid layout in place
+            by adding a new row and adjusting the geometry and arrangement of items.
+        """
         try:
             for j in range(self.gridlayout.columns):
                 self.add_emptybox(self.gridlayout.rows, j)
@@ -280,6 +502,22 @@ class relatedResultWidget(redirectQWidget):
             print(traceback.format_exc())
 
     def expenddgridcolumn(self):
+        """
+        Expand the grid layout by adding a new column and adjusting the geometry.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. It is expected to have
+            attributes `gridlayout`, `itemwidth`, `itemheight`, and methods `add_emptybox`
+            and `arrange`. The `gridlayout` should have attributes `rows` and `columns`.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It modifies the grid layout in place
+            and adjusts the geometry of the object.
+        """
         try:
             for i in range(self.gridlayout.rows):
                 self.add_emptybox(i, self.gridlayout.columns)
@@ -292,6 +530,21 @@ class relatedResultWidget(redirectQWidget):
             print(traceback.format_exc())
 
     def addBox(self, row, col):
+        """
+        Add a box to the specified grid position and update layout.
+        
+        Parameters
+        ----------
+        row : int
+            The row index in the grid layout where the box will be added.
+        col : int
+            The column index in the grid layout where the box will be added.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         try:
             if self.prj.library['DragEventObject']:
                 searchresult = self.prj.library['DragEventObject']
@@ -314,6 +567,21 @@ class relatedResultWidget(redirectQWidget):
             print(traceback.format_exc())
 
     def mousePressEvent(self, event: QtGui.QMouseEvent):
+        """
+        Handle right mouse button press event to toggle display of referenced items in a grid layout.
+        
+        Parameters
+        ----------
+        self : groupEditorWidget
+            The instance of the groupEditorWidget handling the event.
+        event : QtGui.QMouseEvent
+            The mouse event containing position and button information.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It performs UI updates based on the mouse interaction.
+        """
         if event.button() == Qt.RightButton:
             try:
                 items = [self.gridlayout.itemAt(i) for i in range(self.gridlayout.count()) if self.gridlayout.itemAt(i)]
@@ -363,6 +631,23 @@ class relatedResultWidget(redirectQWidget):
 
 class groupEditorWidget(redirectQWidget):
     def __init__(self, parent, window, prj):
+        """
+        Initialize the groupEditorWidget with parent, window, and project settings.
+        
+        Parameters
+        ----------
+        parent : QWidget
+            Parent widget to which this widget belongs.
+        window : QMainWindow or QWidget
+            Main window or container window that holds this widget.
+        prj : object
+            Project object containing configuration and data for the current project.
+        
+        Returns
+        -------
+        None
+            This constructor does not return a value.
+        """
         super(groupEditorWidget, self).__init__(parent, window, prj)
         self.setAcceptDrops(True)
 
@@ -376,6 +661,20 @@ class groupEditorWidget(redirectQWidget):
         self.arrange()
 
     def editorToTempCSV(self):
+        """
+        Open group editor data in a temporary CSV file.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. Expected to have
+            `crossAllGroupEditors` method and `prj` attribute with `tempFolder` property.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         geditor = self.crossAllGroupEditors()
         if geditor is not None:
             tempCsv = os.path.join(self.prj.tempFolder, '_groupEditor.csv')
@@ -383,6 +682,22 @@ class groupEditorWidget(redirectQWidget):
             os.startfile(tempCsv)
 
     def editorFromCSV(self):
+        """
+        Open a file dialog to select and read a CSV file containing parameters.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. It is expected to have
+            a `prj` attribute with a `model` field, and a `readCSV` method to process
+            the selected CSV file.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It performs side effects by
+            opening a file dialog and attempting to read the selected CSV file.
+        """
         try:
             if self.prj.model is not None:
                 filePath, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Select the params csv", "./",
@@ -393,6 +708,21 @@ class groupEditorWidget(redirectQWidget):
             print(traceback.format_exc())
 
     def readCSV(self,filePath):
+        """
+        Read and load a CSV file into the editor interface, creating a new IDFGroupEditorBox.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method.
+        filePath : str
+            Path to the CSV file to be read and loaded.
+        
+        Returns
+        -------
+        IDFGroupEditorBox
+            The newly created and appended IDFGroupEditorBox instance corresponding to the loaded CSV file.
+        """
         item, self.fileNames = IDFGroupEditor.load(self.prj.model, filePath, returnFileNames=True)
         rect = QtCore.QRect(0, 0, 500, 100)
         self.geditorbox.append(IDFGroupEditorBox(parent=self, item=item, prj=self.prj, rect=rect))
@@ -409,6 +739,19 @@ class groupEditorWidget(redirectQWidget):
         return self.geditorbox[-1]
 
     def emptyGroupEditor(self):
+        """
+        Create and return a styled QLabel widget with fixed dimensions.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. Used as parent for the QLabel.
+        
+        Returns
+        -------
+        QtWidgets.QLabel
+            A QLabel widget with predefined stylesheet and size properties (800x150 pixels).
+        """
         emptyblock = QtWidgets.QLabel(parent=self)
         emptyblock.setStyleSheet(emptyBoxStyleSheet)
         emptyblock.setGeometry(0, 0, 800, 150)
@@ -417,6 +760,22 @@ class groupEditorWidget(redirectQWidget):
         return emptyblock
 
     def arrange(self):
+        """
+        Arrange widgets in the layout by adjusting geometry and stretch factors.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. It is expected to have 
+            a `VBoxLayout` attribute (QVBoxLayout) for managing the layout of widgets, 
+            and methods `count()`, `itemAt()`, `widget()`, `setGeometry()`, and `setStretch()`.
+        
+        Returns
+        -------
+        None
+            This function does not return a value. It modifies the geometry of the widget 
+            and the stretch factors of the layout items in place.
+        """
         totalheight = []
         maxWidth=0
         for i in range(self.VBoxLayout.count()):
@@ -432,6 +791,21 @@ class groupEditorWidget(redirectQWidget):
             self.VBoxLayout.setStretch(i,int(totalheight[i]/np.sum(totalheight)*100))
 
     def childPressEvent(self, gridnode):
+        """
+        Handle the press event for a child grid node.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method.
+        gridnode : QWidget
+            The grid node widget to be replaced upon the press event.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         try:
             self.VBoxLayout.replaceWidget(gridnode, self.emptyGroupEditor())
             self.geditorbox.remove(gridnode)
@@ -440,6 +814,22 @@ class groupEditorWidget(redirectQWidget):
             print(traceback.format_exc())
 
     def toGroupEditor(self,item):
+        """
+        Convert an item to an IDFGroupEditor instance.
+        
+        Parameters
+        ----------
+        item : IDFsearchresult or IDFEditor
+            The item to be converted. If it is an IDFsearchresult, it will first be 
+            converted to an IDFEditor, then to an IDFGroupEditor. If the item's field 
+            attribute is None or empty, it will be set to the third field in the object's 
+            fieldnames list.
+        
+        Returns
+        -------
+        IDFGroupEditor
+            An instance of IDFGroupEditor created from the input item.
+        """
         if isinstance(item, IDFsearchresult):
             if item.field is None or item.field == '':
                 item.field = item.obj.fieldnames[2]
@@ -448,6 +838,19 @@ class groupEditorWidget(redirectQWidget):
             item = IDFGroupEditor(item)
         return item
     def dropEvent(self, event: QtGui.QMouseEvent):
+        """
+        Handle the drop event for dragging and dropping items within the layout.
+        
+        Parameters
+        ----------
+        event : QtGui.QMouseEvent
+            The mouse event containing position and state information for the drop operation.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
 
         try:
             for i in np.arange(self.VBoxLayout.count() - 1, -1, -1):
@@ -490,6 +893,21 @@ class groupEditorWidget(redirectQWidget):
             print(traceback.format_exc())
 
     def dragEnterEvent(self, event):
+        """
+        Handle the drag enter event for the widget.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method.
+        event : QDragEnterEvent
+            The drag enter event to be processed. It is modified to accept the drop action and set to MoveAction.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         for i in np.arange(self.VBoxLayout.count() - 1, -1, -1):
             item = self.VBoxLayout.itemAt(i)
             if item.widget():
@@ -501,6 +919,19 @@ class groupEditorWidget(redirectQWidget):
         event.accept()
 
     def dragLeaveEvent(self, event):
+        """
+        Handle the drag leave event by resetting the style and text of child widgets.
+        
+        Parameters
+        ----------
+        event : QDragLeaveEvent
+            The drag leave event object that triggered the function.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         for i in np.arange(self.VBoxLayout.count() - 1, -1, -1):
             item = self.VBoxLayout.itemAt(i)
             if item.widget():
@@ -509,6 +940,26 @@ class groupEditorWidget(redirectQWidget):
                     item.widget().setText('')
 
     def crossAllGroupEditors(self) -> IDFGroupEditor:
+        """
+        Cross all group editors and return a combined IDFGroupEditor along with file names.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the method. It is expected to have
+            attributes `geditorbox` (a collection of editor boxes) and `fileNames` (a 
+            list or attribute indicating associated file names).
+        
+        Returns
+        -------
+        tuple or None
+            A tuple containing:
+            - An `IDFGroupEditor` object resulting from the successive crossing of all 
+              valid group editors from `geditorbox`. If no valid editors are found, 
+              returns None.
+            - The `fileNames` attribute from `self`, typically a list of file names 
+              associated with the editors.
+        """
         geditors = []
         for box in self.geditorbox:
             try:
@@ -523,11 +974,42 @@ class groupEditorWidget(redirectQWidget):
         return geditor,self.fileNames
 
     def updateProjectGroupEditor(self):
+        """
+        Update the project's group editor by packing group editor data from all editor boxes.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the method. Expected to have `prj` and `geditorbox` 
+            attributes, where `prj` contains a `groupeditor` attribute and `geditorbox` is a list 
+            of objects with a `packGroupEditor` method.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         self.prj.groupeditor = [box.packGroupEditor() for box in self.geditorbox]
 
 
 class editorWidget(redirectQWidget):
     def __init__(self, parent, window, prj):
+        """
+        Initialize the editorWidget with parent, window, and project settings.
+        
+        Parameters
+        ----------
+        parent : QWidget
+            Parent widget to which this editorWidget belongs.
+        window : QMainWindow or QWidget
+            Main window or container window associated with this widget.
+        prj : object
+            Project object containing configuration and data for the editor.
+        
+        Returns
+        -------
+        None
+        """
         super(editorWidget, self).__init__(parent, window, prj)
         self.itemHeight = rowHight*4
         self.prj = prj
@@ -547,6 +1029,23 @@ class editorWidget(redirectQWidget):
         self.setAcceptDrops(True)
 
     def addEditorBox(self, adding: list, overwrite=True):
+        """
+        Add new editor boxes to the current instance if they are not already present.
+        
+        Parameters
+        ----------
+        adding : list
+            A list of items to be added as editor boxes. Each item is checked for duplication
+            before addition.
+        overwrite : bool, optional
+            If True, the items added will also be appended to the project's editor list.
+            Default is True.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         adding_new = []
         for item in adding:
             find = False
@@ -572,9 +1071,41 @@ class editorWidget(redirectQWidget):
         self.setGeometry(QtCore.QRect(10, 10, self.parent().width(), self.vboxlayout.count() * (self.itemHeight+5)))
 
     def acceptDelete(self):
+        """
+        Show the accept delete widget.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. Assumes the instance has an `AcceptDeleteWidget` attribute.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         self.AcceptDeleteWidget.show()
 
     def deleteEvent(self):
+        """
+        Delete the selected event from the editor and adjust the layout accordingly.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. It is expected to have the following attributes:
+            - prj: An object with a `library` dictionary containing 'DragEventObject' and an `editor` list.
+            - editorboxlist: A list of widget objects representing events in the editor.
+            - vboxlayout: A QVBoxLayout managing the layout of editor boxes.
+            - itemHeight: Integer specifying the height of each item in the layout.
+            - AcceptDeleteWidget: A widget to be hidden after deletion.
+            - parent(): A method returning the parent widget, expected to have a `width()` method.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It modifies the GUI layout and data structures in place.
+        """
         try:
             if self.prj.library['DragEventObject']:
                 for i in range(len(self.editorboxlist)):
@@ -598,6 +1129,21 @@ class editorWidget(redirectQWidget):
             traceback.print_exc()
 
     def dragEnterEvent(self, event):
+        """
+        Handle drag enter events for the widget.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method.
+        event : QDragEnterEvent
+            The drag enter event to be processed, which contains information about the dragged data and allows setting the drop action.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It modifies the widget's state by adding a drop hint label if conditions are met and accepts the drag event.
+        """
         if self.prj.library['DragEventObject']:
             item = self.prj.library['DragEventObject']
             if isinstance(item, IDFsearchresult):
@@ -610,6 +1156,21 @@ class editorWidget(redirectQWidget):
                 event.accept()
 
     def dragLeaveEvent(self, event):
+        """
+        Handle the drag leave event by removing the drop hint widget if a valid drag event object exists.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method.
+        event : QDragLeaveEvent
+            The drag leave event object representing the event.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         if self.prj.library['DragEventObject']:
             item = self.prj.library['DragEventObject']
             if isinstance(item, IDFsearchresult):
@@ -617,6 +1178,19 @@ class editorWidget(redirectQWidget):
                 self.dropHint.deleteLater()
 
     def dropEvent(self, event):
+        """
+        Handle the drop event by processing the dragged object and adding it as an editor box if applicable.
+        
+        Parameters
+        ----------
+        event : QDropEvent
+            The drop event containing metadata about the drag operation.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         self.dragLeaveEvent(event)
         if self.prj.library['DragEventObject']:
             item = self.prj.library['DragEventObject']
@@ -625,6 +1199,23 @@ class editorWidget(redirectQWidget):
 
 class resultWidget(redirectQWidget):
     def __init__(self, parent, window, prj):
+        """
+        Initialize the resultWidget instance.
+        
+        Parameters
+        ----------
+        parent : QtWidgets.QWidget
+            Parent widget to which this widget belongs.
+        window : object
+            Main window or container object associated with the widget.
+        prj : object
+            Project object containing model and configuration data; expected to have a 'model' attribute 
+            which may contain a 'folder' attribute used to determine initialization behavior.
+        
+        Returns
+        -------
+        None
+        """
         super(resultWidget, self).__init__(parent, window, prj)
         self.gridLayout = QtWidgets.QGridLayout(self)
         self.exportButton = QtWidgets.QPushButton(self)
@@ -639,6 +1230,20 @@ class resultWidget(redirectQWidget):
             self.createExportButton()
 
     def createExportButton(self):
+        """
+        Create and configure an export button widget.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. Expected to have
+            attributes `gridLayout`, `exportButton`, `mainWindow`, and `suggestionBoxStyleSheet`.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         self.gridLayout.addWidget(self.exportButton)
         self.exportButton.setStyleSheet(suggestionBoxStyleSheet)
         self.exportButton.setText("Click to Select a Result Folder...")
@@ -647,6 +1252,20 @@ class resultWidget(redirectQWidget):
         self.exportButton.show()
 
     def initResultView(self):
+        """
+        Initialize the result view by setting up the result box and connecting export functionality.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. Expected to have attributes 
+            `exportButton`, `gridLayout`, `prj`, and `mainWindow` accessible.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         self.exportButton.hide()
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.resultBox = ResultBox(prj=self.prj,parent=self)
@@ -655,6 +1274,21 @@ class resultWidget(redirectQWidget):
 
 
 def clear_grid(layout: QtWidgets.QGridLayout, delete_widgets=True):
+    """
+    Clear all widgets, sub-layouts, and spacers from a QGridLayout.
+    
+    Parameters
+    ----------
+    layout : QtWidgets.QGridLayout
+        The layout to be cleared.
+    delete_widgets : bool
+        If True, widgets and child layouts are deleted (destroyed).
+        If False, only removed from the layout; widgets remain alive and can be added to another layout.
+    
+    Returns
+    -------
+    None
+    """
     """
     清空 QGridLayout 里的所有控件/子布局
     :param layout: 要清空的 QGridLayout

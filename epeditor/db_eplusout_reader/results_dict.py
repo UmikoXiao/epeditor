@@ -35,18 +35,70 @@ class ResultsDictionary(OrderedDict):
     """
 
     def __init__(self, frequency=""):
+        """
+        Initialize a ResultsDictionary instance.
+        
+        Parameters
+        ----------
+        frequency : str, optional
+            The frequency string indicating the time frequency of the data (e.g., 'D' for daily, 'M' for monthly).
+            Default is an empty string.
+        
+        Returns
+        -------
+        None
+            This constructor does not return any value.
+        """
         super(ResultsDictionary, self).__init__()
         self.frequency = frequency
         self.time_series = None
 
     @property
     def _items(self):
+        """
+        Property that returns the items of the object as a list.
+        
+        Parameters
+        ----------
+        self : Results
+            The instance of the Results class, which should be non-empty.
+        
+        Returns
+        -------
+        list
+            A list of key-value pairs from the object's items if it is non-empty.
+        
+        Raises
+        ------
+        NoResults
+            If the Results dictionary is empty.
+        """
         if self:
             return list(self.items())
         raise NoResults("Cannot get items, Results dictionary is empty. ")
 
     @property
     def scalar(self):
+        """
+        Scalar property to retrieve the first element of the first array in items.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the `_items` attribute, expected to be a nested structure
+            where `self._items[0][1]` is an array-like object.
+        
+        Returns
+        -------
+        scalar
+            The first element of the array located at `self._items[0][1]`. The exact type depends on the
+            contents of the array.
+        
+        Raises
+        ------
+        NoResults
+            If the first array (`self._items[0][1]`) is empty, preventing scalar retrieval.
+        """
         try:
             return self._items[0][1][0]
         except IndexError:
@@ -54,18 +106,77 @@ class ResultsDictionary(OrderedDict):
 
     @property
     def first_array(self):
+        """
+        First array property.
+        
+        Returns the first array from the items stored in the object.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the `_items` attribute.
+        
+        Returns
+        -------
+        numpy.ndarray or array-like
+            The first array, which is the second element of the first item in `self._items`.
+        """
         return self._items[0][1]
 
     @property
     def first_variable(self):
+        """
+        First variable property.
+        
+        Returns the first element of the first item in the internal items list.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this property.
+        
+        Returns
+        -------
+        object
+            The first element of the first item in self._items.
+        """
         return self._items[0][0]
 
     @property
     def variables(self):
+        """
+        List of variable names from the internal items.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the `_items` attribute, which is a sequence of tuples 
+            where each tuple's first element is a variable name.
+        
+        Returns
+        -------
+        list of str
+            A list containing the first element (variable name) from each tuple in `self._items`.
+        """
         return [v[0] for v in self._items]
 
     @property
     def arrays(self):
+        """
+        Arrays property.
+        
+        Returns a list of arrays from the stored items.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the `_items` attribute.
+        
+        Returns
+        -------
+        list
+            A list of arrays extracted from the second element of each item in `self._items`.
+        """
         return [v[1] for v in self._items]
 
     def to_table(self, explode_header=True):
@@ -135,6 +246,23 @@ class ResultsHandler:
 
     @classmethod
     def _insert_index_column(cls, table, index, offset):
+        """
+        Add a new column to the table for index headers and data.
+        
+        Parameters
+        ----------
+        table : list of list
+            The table to modify, represented as a list of rows, where each row is a list of values.
+        index : list
+            List of index values (e.g., datetime or range data) to be inserted starting at the offset row.
+        offset : int
+            Number of rows to skip at the beginning of the table before inserting index values.
+        
+        Returns
+        -------
+        None
+            This function modifies the table in place and does not return a value.
+        """
         """Add first column with header names and datetime / range data."""
         index_column = ["" for _ in range(offset)] + index
         for i, item in enumerate(index_column):
@@ -188,6 +316,29 @@ class ResultsWriter:
 
     @classmethod
     def write_table_to_csv(cls, table, path, delimiter, append, title, **kwargs):
+        """
+        Write a given table to a CSV file with specified formatting options.
+        
+        Parameters
+        ----------
+        table : list of lists
+            The table data to write, where each inner list represents a row.
+        path : str
+            The file path to which the CSV will be written.
+        delimiter : str
+            The character used to separate fields in the CSV file.
+        append : bool
+            If True, append to the file; otherwise, overwrite the file.
+        title : str or None
+            If provided, this string is written as the first row of the CSV file.
+        **kwargs : dict
+            Additional keyword arguments passed to `csv.writer`.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         """Write given table as a .csv file."""
         if sys.version_info[0] == 3:
             open_kwargs = {"mode": "a" if append else "w", "newline": ""}

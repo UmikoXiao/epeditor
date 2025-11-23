@@ -7,6 +7,32 @@ from db_eplusout_reader.sql_reader import get_results_from_sql
 def get_results(
     file_or_path, variables, frequency, alike=False, start_date=None, end_date=None
 ):
+    """
+    Extract results from an EnergyPlus output file based on specified variables and frequency.
+    
+    Parameters
+    ----------
+    file_or_path : DBEsoFile, DBEsoFileCollection or PathLike
+        A processed EnergyPlus .eso file, path to unprocessed .eso file,
+        or path to unprocessed .sql file.
+    variables : Variable or list of Variable
+        Requested output variables defined as Variable named tuples.
+    frequency : str
+        Output interval; one of "timestep", "hourly", "daily", "monthly", "annual", or "runperiod",
+        or corresponding constants (TS, H, D, M, A, RP).
+    alike : bool, optional
+        If True, performs substring matching for variable names (case insensitive).
+        If False (default), requires full string match.
+    start_date : datetime.datetime, optional
+        Lower bound for date filtering (inclusive). If None, no lower bound is applied.
+    end_date : datetime.datetime, optional
+        Upper bound for date filtering (inclusive). If None, no upper bound is applied.
+    
+    Returns
+    -------
+    ResultsDictionary : dict of {Variable: list of float}
+        A dictionary-like object mapping each requested Variable to its list of output values.
+    """
     r"""
     Extract results from given file.
 

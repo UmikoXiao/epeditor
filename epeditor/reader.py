@@ -12,6 +12,25 @@ class IDFResult:
     __slots__ = ['variables', 'frequency', 'dump', '__cache', 'sql_list', 'metaData']
 
     def __init__(self, variables, frequency, data, sql_list):
+        """
+        Initialize the object with variables, frequency, data, and SQL list.
+        
+        Parameters
+        ----------
+        variables : list
+            List of variable names corresponding to the data columns.
+        frequency : str
+            String indicating the frequency of the data (e.g., 'D' for daily, 'M' for monthly).
+        data : str or array-like
+            If a string, it should be a file path to load data from; if array-like, it should be a 2D array 
+            with shape matching the number of variables. If the size exceeds 100,000 elements, data is saved automatically.
+        sql_list : list
+            List of SQL commands or strings associated with the data.
+        
+        Returns
+        -------
+        None
+        """
         self.variables = variables
         self.frequency = frequency
         self.dump = None
@@ -31,6 +50,15 @@ class IDFResult:
 
     @property
     def data(self):
+        """
+        Property that returns the processed data from either a saved dump or an internal cache.
+        
+        Returns
+        -------
+        numpy.ndarray
+            The loaded data array with the first column removed if loading from `dump`, 
+            otherwise returns the cached data stored in `__cache`.
+        """
         if self.dump is not None:
             return np.load(self.dump)[:, 1:]
         else:
@@ -38,6 +66,20 @@ class IDFResult:
 
     @classmethod
     def from_npy(cls, path):
+        """
+        Create an instance of the class from .npy files containing data and variable names.
+        
+        Parameters
+        ----------
+        path : str
+            Path to the .npy file containing the data. The corresponding variables are loaded 
+            from a file with '_variables.npy' appended to the base filename (excluding the .npy extension).
+        
+        Returns
+        -------
+        cls
+            An instance of the class initialized with the loaded variables, inferred frequency, and path.
+        """
         data = np.load(path)
         variables = [eval(var) for var in np.load(path[:-4]) + '_variables.npy']
         frequency = len(data[0])
@@ -54,6 +96,19 @@ class IDFResult:
         return res
 
     def save(self, path: str = os.path.join(Working_Dir, generate_code(6) + '.npy')):
+        """
+        Save the current state of the object to a file.
+        
+        Parameters
+        ----------
+        path : str, optional
+            The file path where the object's state will be saved. 
+            Defaults to a randomly generated .npy file in the working directory.
+        
+        Returns
+        -------
+        None
+        """
         if self.__cache is None and self.dump is not None:
             if path != self.dump:
                 shutil.copy(self.dump, path)
@@ -65,6 +120,21 @@ class IDFResult:
             self.__cache = None
 
     def to_csv(self, path: str, seq: str = ','):
+        """
+        Write data to a CSV file in a formatted string sequence.
+        
+        Parameters
+        ----------
+        path : str
+            The file path where the CSV will be saved.
+        seq : str, optional
+            The delimiter sequence used to separate values in the CSV. Default is ','.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         streams = []
         if len(np.array(self.data).shape) == 2:
             streamData = np.array(self.__cache).T
@@ -80,6 +150,21 @@ class IDFResult:
             f.write('\n'.join(streams))
 
     def load(self):
+        """
+        Load and cache data from a dump file.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the `load` method. It is expected to have
+            a `__cache` attribute for storing cached data and a `dump` attribute specifying
+            the file path to load data from using `np.load`.
+        
+        Returns
+        -------
+        __cache : numpy.ndarray or None
+            The cached data loaded from the dump file as a NumPy array, or None if no dump file is specified.
+        """
         if self.__cache is None and self.dump is not None:
             self.__cache = np.load(self.dump)
             self.dump = None
@@ -88,6 +173,35 @@ class IDFResult:
 
 def get_group_result(sql_list: list, variables: Variable, calculator, frequency=Monthly,
                      alike=False, start_date=None, end_date=None, dump_path=None):
+    """
+    Compute aggregated results for a list of SQL files and variables using a specified calculator function.
+    
+    Parameters
+    ----------
+    sql_list : list of str
+        List of file paths to SQL files from which data will be retrieved.
+    variables : Variable or list of Variable
+        One or more Variable objects specifying the data variables to extract and process.
+    calculator : callable
+        A function that takes a data series (array-like) and returns a computed scalar or array value.
+    frequency : type, optional
+        The temporal frequency/resolution of the data (e.g., Monthly). Default is Monthly.
+    alike : bool, optional
+        If True, allows approximate matching of variable data. Default is False.
+    start_date : str or datetime-like, optional
+        Start date for filtering the time range of data. Default is None.
+    end_date : str or datetime-like, optional
+        End date for filtering the time range of data. Default is None.
+    dump_path : str, optional
+        If provided, the resulting group data will be saved to this file path in .npy format.
+        Also saves associated variables. Returns the path string instead of IDFResult if used. Default is None.
+    
+    Returns
+    -------
+    IDFResult or str
+        An IDFResult object containing variables, frequency, computed group results, and valid SQL file paths.
+        If dump_path is specified and valid, returns the dump_path string after saving the results.
+    """
     group_result = []
     if isinstance(variables, Variable):
         variables = [variables]
@@ -129,6 +243,35 @@ def get_group_result(sql_list: list, variables: Variable, calculator, frequency=
 
 def get_group_summary(sql_list: list, variables: Variable, calculator, frequency=Monthly,
                      alike=False, start_date=None, end_date=None, dump_path=None):
+    """
+    Summarize group results from multiple SQL case files using specified variables and a calculator function.
+    
+    Parameters
+    ----------
+    sql_list : list
+        List of file paths (strings) to SQL files to process.
+    variables : Variable or list of Variable
+        Variable or list of Variables specifying the data to extract from each SQL file.
+    calculator : callable
+        Function that takes a time series data array and computes a summary value (e.g., mean, sum).
+    frequency : type, optional
+        Frequency object (e.g., Monthly) defining the time frequency for result aggregation. Default is Monthly.
+    alike : bool, optional
+        If True, allows approximate matching of cases. Default is False.
+    start_date : str or datetime-like, optional
+        Start date for filtering the data. Default is None (no filtering).
+    end_date : str or datetime-like, optional
+        End date for filtering the data. Default is None (no filtering).
+    dump_path : str, optional
+        File path to save the output as a .npy file. If provided, `group_result` is saved and returned as path. 
+        Default is None (no saving).
+    
+    Returns
+    -------
+    IDFResult
+        An object containing the variables, frequency, grouped results (shape: variables × frequency × cases), 
+        and list of valid SQL file paths that were successfully processed.
+    """
     group_result,validSql = [],[]
     if isinstance(variables, Variable):
         variables = [variables]
@@ -167,6 +310,35 @@ def get_group_summary(sql_list: list, variables: Variable, calculator, frequency
     return IDFResult(variables, frequency, group_result, validSql)
 def get_case_result(sql: str, variables: Variable, frequency=Monthly,
                     alike=False, start_date=None, end_date=None, dump_path=None):
+    """
+    Retrieve simulation results for a given SQL query and variable, optionally saving to disk.
+    
+    Parameters
+    ----------
+    sql : str
+        Path to the SQL file containing simulation output.
+    variables : Variable
+        The variable(s) to extract from the SQL result. If a single Variable is provided,
+        it will be converted to a list.
+    frequency : type, optional
+        Time frequency of the data (e.g., Monthly, Hourly). Default is Monthly.
+    alike : bool, optional
+        If True, allows approximate matches for variable names. Default is False.
+    start_date : str or datetime, optional
+        Start date for filtering results. Default is None.
+    end_date : str or datetime, optional
+        End date for filtering results. Default is None.
+    dump_path : str, optional
+        If provided, saves the result array and variables to the specified .npy file path.
+        The result returned will be the path string. Default is None.
+    
+    Returns
+    -------
+    IDFResult or str or None
+        An IDFResult object containing the variables, frequency, and result data if successful.
+        If no results are found, returns None. If dump_path is specified and file is saved,
+        returns the dump_path as a string.
+    """
     if isinstance(variables, Variable):
         variables = [variables]
     try:

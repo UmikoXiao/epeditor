@@ -44,6 +44,24 @@ defaultArgsList = [
 
 class emptyBox(QtWidgets.QLabel):
     def __init__(self, parent, i, j, itemheight=rowHight*2):
+        """
+        Initialize an emptyBox instance with grid position and display properties.
+        
+        Parameters
+        ----------
+        parent : QWidget
+            Parent widget to which this emptyBox belongs.
+        i : int
+            Row index of the box in the grid.
+        j : int
+            Column index of the box in the grid.
+        itemheight : int, optional
+            Height of the box in pixels (default is rowHight * 2).
+        
+        Returns
+        -------
+        None
+        """
         super(emptyBox, self).__init__(parent=parent)
         self.i, self.j = i, j
         self.itemheight = itemheight
@@ -52,21 +70,78 @@ class emptyBox(QtWidgets.QLabel):
         self.setStyleSheet(emptyBoxStyleSheet)
 
     def dragEnterEvent(self, event) -> None:
+        """
+        Handle the drag enter event for the widget.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the widget receiving the event.
+        event : QDragEnterEvent
+            The drag enter event containing information about the dragged data and allowing acceptance of the event.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         self.setStyleSheet(emptyBoxStyleSheetHover)
         self.setText('DROP HERE!')
         event.setDropAction(Qt.MoveAction)
         event.accept()
 
     def dragLeaveEvent(self, a0: QtGui.QDragLeaveEvent) -> None:
+        """
+        Handle the drag leave event by resetting the widget's style and text.
+        
+        Parameters
+        ----------
+        a0 : QtGui.QDragLeaveEvent
+            The drag leave event object containing information about the event.
+        
+        Returns
+        -------
+        None
+        """
         self.setStyleSheet(emptyBoxStyleSheet)
         self.setText('')
 
     def dropEvent(self, a0: QtGui.QDropEvent) -> None:
+        """Handle the drop event by adding a box at the specified grid position.
+        
+        Parameters
+        ----------
+        a0 : QtGui.QDropEvent
+            The drop event object containing data about the drag and drop operation.
+        
+        Returns
+        -------
+        None
+        """
         self.parent().addBox(self.i, self.j)
 
 
 class IDFSearchResultBox(QtWidgets.QCheckBox):
     def __init__(self, parent=None, item: IDFsearchresult = None, rect=None,prj=None):
+        """
+        Initialize an IDFSearchResultBox widget for displaying search results.
+        
+        Parameters
+        ----------
+        parent : QtWidgets.QWidget, optional
+            Parent widget, by default None.
+        item : IDFsearchresult, optional
+            Search result item to display, containing attributes like idfclass, name, field, and obj, by default None.
+        rect : QtCore.QRect, optional
+            Geometry rectangle defining the position and size of the widget; defaults to QRect(0, 0, 220, rowHight*2) if None.
+        prj : object, optional
+            Project context or reference associated with the search result, by default None.
+        
+        Returns
+        -------
+        None
+            This constructor does not return a value.
+        """
         super(IDFSearchResultBox, self).__init__(parent)
         if rect is None:
             rect = QtCore.QRect(0, 0, 220, rowHight*2)
@@ -95,6 +170,19 @@ class IDFSearchResultBox(QtWidgets.QCheckBox):
             self.setToolTip(self.item.obj.__repr__())
 
     def mousePressEvent(self, event):
+        """
+        Handle mouse press events for the IDFSearchResultBox widget.
+        
+        Parameters
+        ----------
+        event : QMouseEvent
+            The mouse event containing information about the press action, including position and button pressed.
+        
+        Returns
+        -------
+        None
+            This function does not return a value.
+        """
         super(IDFSearchResultBox, self).mousePressEvent(event)
         self.setChecked(self.isChecked())
         self.timer.start(300)
@@ -103,6 +191,27 @@ class IDFSearchResultBox(QtWidgets.QCheckBox):
         # 拖拽放下事件
 
     def longPressEvent(self):
+        """
+        Handle long press event to initiate a drag operation.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. Expected to have attributes:
+            - timer: QTimer object that is stopped at the start of the method.
+            - drag: Will be assigned a QDrag object for the drag operation.
+            - prj: Project object with a 'library' dictionary to store drag-related data.
+            - item: Item associated with the drag event, stored in prj.library during drag.
+            - size(): Method returning the size of the widget for pixmap creation.
+            - grab(): Method to capture the current widget's content as a pixmap.
+            - rect(): Method returning the geometry of the widget.
+        
+        Returns
+        -------
+        None
+            This function does not return a value. It performs a drag operation and may print 
+            traceback information if an exception occurs.
+        """
         self.timer.stop()
         try:
             self.drag = QtGui.QDrag(self)  # 创建QDrag对象
@@ -124,6 +233,21 @@ class IDFSearchResultBox(QtWidgets.QCheckBox):
 
 class acceptDeleteBox(QtWidgets.QCheckBox):
     def __init__(self, parent, rect):
+        """
+        Initialize a new instance of the widget with specified parent and geometry.
+        
+        Parameters
+        ----------
+        parent : QWidget
+            The parent widget to which this widget belongs. Can be None if the widget has no parent.
+        rect : QRect
+            The geometry rectangle defining the position and size of the widget.
+        
+        Returns
+        -------
+        None
+            This constructor does not return a value.
+        """
         super().__init__(parent)
         self.setAcceptDrops(True)
         self.setGeometry(rect)
@@ -137,19 +261,74 @@ class acceptDeleteBox(QtWidgets.QCheckBox):
         self.show()
 
     def dragEnterEvent(self, a0: QtGui.QDragEnterEvent):
+        """
+        Handle the drag enter event for the widget.
+        
+        Parameters
+        ----------
+        a0 : QtGui.QDragEnterEvent
+            The drag enter event containing information about the drag operation.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         self.setStyleSheet('border:1px solid transparent;background-color: rgb(200,200,230);opacity: 0.5;')
         a0.setDropAction(Qt.MoveAction)
         a0.accept()
 
     def dragLeaveEvent(self, a0: QtGui.QDragLeaveEvent):
+        """
+        Handle the drag leave event by resetting the widget's background color.
+        
+        Parameters
+        ----------
+        a0 : QtGui.QDragLeaveEvent
+            The drag leave event object containing information about the event.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         self.setStyleSheet('background-color: transparent;')
 
     def dropEvent(self, a0: QtGui.QDropEvent):
+        """Handle the drop event by triggering the parent's delete event.
+        
+                Parameters
+                ----------
+                a0 : QtGui.QDropEvent
+                    The drop event object containing information about the drag and drop operation.
+        
+                Returns
+                -------
+                None
+        """
         self.parent().deleteEvent()
 
 
 class IDFEditorBox(QtWidgets.QPushButton):
     def __init__(self, parent=None, item: IDFsearchresult = None, prj=None, rect=QtCore.QRect(0, 0, 220, 150)):
+        """
+        Initialize a widget for displaying and editing IDF search results.
+        
+        Parameters
+        ----------
+        parent : QWidget, optional
+            Parent widget, by default None.
+        item : IDFsearchresult, optional
+            The search result item to display and edit, by default None.
+        prj : Project, optional
+            Project instance associated with the editor, used to append editors, by default None.
+        rect : QtCore.QRect, default=QtCore.QRect(0, 0, 220, 150)
+            Initial geometry and size of the widget.
+        
+        Returns
+        -------
+        None
+        """
         super().__init__(parent)
         self.prj = prj
         self.setGeometry(rect)
@@ -203,6 +382,23 @@ class IDFEditorBox(QtWidgets.QPushButton):
         self.setMinimumHeight(rowHight*4)
 
     def updateSearchResult(self):
+        """
+        Update the search result item with the current field and value from the UI.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. It is expected to have 
+            attributes `item`, `fieldcombobox`, and `itemvalue`. The `item` attribute 
+            should be either an IDFsearchresult or a compatible object with `field` and 
+            `value` properties.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It modifies the `item` attribute 
+            in place and updates the displayed text in `itemvalue`.
+        """
         if isinstance(self.item, IDFsearchresult):
             self.item = IDFEditor(self.item, field=self.fieldcombobox.currentText())
         else:
@@ -213,6 +409,21 @@ class IDFEditorBox(QtWidgets.QPushButton):
         self.itemvalue.value = str(self.item.value)
 
     def mousePressEvent(self, event):
+        """
+        Handle mouse press event for initiating drag operation or confirming baseline value change.
+        
+        Parameters
+        ----------
+        self : QtWidgets.QWidget
+            The widget instance handling the mouse press event.
+        event : QtGui.QMouseEvent
+            The mouse event containing position and state information.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         try:
             if self.itemvalue.text() != self.itemvalue.value:
                 texts = f"Do you want to change the baseline value?\n {self.item.__repr__()}\n{self.itemvalue.value} => {self.itemvalue.text()}"
@@ -252,6 +463,27 @@ class IDFEditorBox(QtWidgets.QPushButton):
 class IDFGroupEditorBox(QtWidgets.QWidget):
     def __init__(self, parent=None, item: IDFGroupEditor = None, prj: project = None,
                  rect=QtCore.QRect(0, 0, 220, 100), dataSheet=None):
+        """
+        Initialize an IDFGroupEditorBox instance with given parameters.
+        
+        Parameters
+        ----------
+        parent : QWidget, optional
+            Parent widget, by default None.
+        item : IDFGroupEditor, optional
+            The associated IDF group editor item, by default None.
+        prj : project, optional
+            Project instance associated with the editor, by default None.
+        rect : QtCore.QRect, optional
+            Initial geometry of the widget, by default QRect(0, 0, 220, 100).
+        dataSheet : str or None, optional
+            Path to the data sheet file, by default None. If provided, modification time is recorded.
+        
+        Returns
+        -------
+        None
+            This method does not return any value.
+        """
         super(IDFGroupEditorBox, self).__init__(parent)
         self.setStyleSheet(GEditorStyleSheet)
         self.item = item
@@ -270,6 +502,21 @@ class IDFGroupEditorBox(QtWidgets.QWidget):
         self.initFromGEditor(item)
 
     def initFromGEditor(self, Geditor):
+        """
+        Initialize the widget from a GEditor instance.
+        
+        Parameters
+        ----------
+        Geditor : object
+            The GEditor instance containing editors and associated data used to initialize 
+            the widget. It is expected to have an `editors` attribute, where each editor 
+            has `idfclass`, `name`, `obj.fieldnames`, and `field` attributes.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         try:
             totalLine=0
             self.item = Geditor
@@ -344,6 +591,25 @@ class IDFGroupEditorBox(QtWidgets.QWidget):
             print(traceback.format_exc())
 
     def dump(self):
+        """
+        Save the current data to a CSV file.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the method. It is expected to have
+            attributes `dataSheet`, `prj`, `tempFolder`, `packGroupEditor`, `item`,
+            and `dataSheetMTime`. The `dataSheet` attribute holds the path to the
+            CSV file; if not set, a new temporary file path is generated. The `prj`
+            attribute should contain a `tempFolder` for storing temporary files. The
+            `packGroupEditor` or `item` (depending on context) is a pandas DataFrame
+            to be saved as CSV.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         if not self.dataSheet:
             dataSheet = self.prj.tempFolder + r'\ged' + utils.generate_code(4) + '.csv'
             self.packGroupEditor().to_csv(dataSheet)
@@ -354,6 +620,26 @@ class IDFGroupEditorBox(QtWidgets.QWidget):
             self.dataSheetMTime = os.path.getmtime(self.dataSheet)
 
     def checkUpdate(self,init=False):
+        """
+        Check if the data sheet has been updated and reload it if necessary.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. Must have attributes `dataSheet`, 
+            `dataSheetMTime`, `prj`, and `idfobjectlist`. The `dataSheet` attribute should be a 
+            string path to the data sheet file or None. The `dataSheetMTime` stores the last 
+            known modification time of the file. The `prj` object must contain a `model` attribute.
+        init : bool, optional
+            If True, initializes the instance from the loaded group editor using `initFromGEditor`.
+            If False, updates the internal `item` and `idfobjectlist` with editors from the loaded 
+            group editor. Default is False.
+        
+        Returns
+        -------
+        bool
+            True if the data sheet was modified and successfully reloaded; False otherwise.
+        """
         if self.dataSheet:
             if self.dataSheetMTime != os.path.getmtime(self.dataSheet):
                 gEditor = IDFGroupEditor.load(self.prj.model, self.dataSheet)
@@ -367,11 +653,44 @@ class IDFGroupEditorBox(QtWidgets.QWidget):
                 return True
         return False
     def openFile(self):
+        """
+        Open the data sheet file, updating it if necessary.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. It is expected to have
+            `checkUpdate`, `dump`, and `dataSheet` attributes. `checkUpdate` should
+            return a boolean indicating whether an update is needed, `dump` updates
+            the data, and `dataSheet` is a string path to the file to be opened.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         if not self.checkUpdate():
             self.dump()
         os.startfile(self.dataSheet)
 
     def clickField(self):
+        """
+        Handle checkbox state changes for IDF object fields and update the item accordingly.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the method. Must have attributes `idfobjectlist`,
+            `prj`, `item`, and methods `checkUpdate`, `dump`, and static methods `IDFEditor.eval`
+            and `IDFGroupEditor.merge`. The `idfobjectlist` should be a nested dictionary structure
+            where each entry contains a dictionary with 'checkbox', 'checked', and 'editor' fields.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It modifies `self.item` and `self.idfobjectlist`
+            in place and may print traceback information if an exception occurs.
+        """
         try:
             self.checkUpdate()
             for key in self.idfobjectlist.keys():
@@ -393,6 +712,22 @@ class IDFGroupEditorBox(QtWidgets.QWidget):
             print(traceback.format_exc())
 
     def packGroupEditor(self):
+        """
+        Create and return a group editor from checked IDF object editors.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the method. It must have an `idfobjectlist` 
+            attribute (dict) that contains object definitions with 'checked' and 'editor' fields, 
+            and a `checkUpdate` method.
+        
+        Returns
+        -------
+        gEditor : IDFGroupEditor
+            An instance of IDFGroupEditor initialized with the list of editors corresponding 
+            to checked items in `idfobjectlist`.
+        """
         self.checkUpdate()
         editors = []
         for key in self.idfobjectlist.keys():
@@ -404,14 +739,55 @@ class IDFGroupEditorBox(QtWidgets.QWidget):
         return gEditor
 
     def dragEnterEvent(self, a0: QtGui.QDragEnterEvent):
+        """
+        Handle drag enter event by changing background color and accepting the drop action.
+        
+        Parameters
+        ----------
+        a0 : QtGui.QDragEnterEvent
+            The drag enter event to be handled.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         self.setStyleSheet('background-color: rgb(220,220,250);')
         a0.setDropAction(Qt.MoveAction)
         a0.accept()
 
     def dragLeaveEvent(self, a0: QtGui.QDragLeaveEvent):
+        """
+        Handle the drag leave event by resetting the widget's background color.
+        
+        Parameters
+        ----------
+        a0 : QtGui.QDragLeaveEvent
+            The drag leave event object containing information about the event.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         self.setStyleSheet('background-color: white;')
 
     def mousePressEvent(self, event: QtGui.QMouseEvent):
+        """
+        Handle mouse press events for drag-and-drop functionality in the IDFGroupEditorBox.
+        
+        Parameters
+        ----------
+        self : IDFGroupEditorBox
+            The instance of the IDFGroupEditorBox handling the event.
+        event : QtGui.QMouseEvent
+            The mouse event containing information about the button pressed and position.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         super(IDFGroupEditorBox, self).mousePressEvent(event)
         try:
             if event.button() == Qt.RightButton:
@@ -439,6 +815,23 @@ class IDFGroupEditorBox(QtWidgets.QWidget):
 
 class ResultBox(QtWidgets.QWidget):
     def __init__(self,prj:project,parent=None, rect=QtCore.QRect(0, 0, 220, 150)):
+        """
+        Initialize the ResultBox widget for displaying and managing simulation results.
+        
+        Parameters
+        ----------
+        prj : project
+            The project instance associated with this result box.
+        parent : QWidget, optional
+            The parent widget, by default None.
+        rect : QtCore.QRect, optional
+            The geometry rectangle defining the position and size of the widget, 
+            by default QtCore.QRect(0, 0, 220, 150).
+        
+        Returns
+        -------
+        None
+        """
         super(ResultBox, self).__init__(parent=parent)
         self.setGeometry(rect)
         self.result=None
@@ -465,6 +858,22 @@ class ResultBox(QtWidgets.QWidget):
         self.initResultWidget()
 
     def initResultWidget(self):
+        """
+        Initialize the result widget UI components for time step, variable selection, and statistical methods.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the UI elements and project data. Expected to have
+            attributes such as `timeStep`, `variables_Scroll`, `calculator`, `prj`, `gridLayout`,
+            and style-related variables like `titlestylesheet`, `rowHight`, and `compressedRowHight`.
+            The `prj.model.variables` dictionary should contain simulation variable metadata.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It initializes and configures UI elements in place.
+        """
         try:
             # Time step area
             self.timeStep.Layout = QtWidgets.QVBoxLayout(self.timeStep)
@@ -561,20 +970,79 @@ class ResultBox(QtWidgets.QWidget):
             traceback.print_exc()
 
     def selectAll(self):
+        """Select all checkboxes in the showBox list.
+        
+                Parameters
+                ----------
+                self : object
+                    The instance of the class containing the method and the showBox attribute.
+        
+                Returns
+                -------
+                None
+                    This function does not return any value.
+                """
         for _varBox in self.showBox:
             _varBox.setChecked(True)
     def caseSummaryChangeText(self):
+        """
+        Update the text of the case summary button based on its checked state.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. It is expected to have
+            a `calculator` attribute, which in turn has a `caseSummary` QPushButton
+            that supports `isChecked()` and `setText()` methods.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         if self.calculator.caseSummary.isChecked():
             self.calculator.caseSummary.setText('summary variables')
         else:
             self.calculator.caseSummary.setText('summary cases')
     def updateVariables(self,idx):
+        """
+        Update the valid variables based on the given index and display them.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the method. Expected to have attributes
+            `variables_Scroll` (with `varBox` dictionary), `validVariables`, and method `showVariables`.
+        idx : int
+            Index used to select a set of variables from the `varBox` dictionary values.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         try:
             self.validVariables = list(self.variables_Scroll.varBox.values())[idx]
             self.showVariables(self.validVariables)
         except Exception as e:
             traceback.print_exc()
     def showVariables(self,showBox):
+        """
+        Show and organize variable boxes in a scrollable widget.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. Expected to have attributes
+            `variables_Scroll`, `variables_Widget`, `showBox`, and `varBox` within `variables_Scroll`.
+        showBox : list of QtWidgets.QWidget
+            List of widget objects (variable boxes) to be displayed in the variables scroll area.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         self.showBox=showBox
         for _varBoxList in self.variables_Scroll.varBox.values():
             for _varBox in _varBoxList:
@@ -589,6 +1057,22 @@ class ResultBox(QtWidgets.QWidget):
             boxMaxLength = max(boxMaxLength, _varBox.sizeHint().width())
         self.variablesWidget.setGeometry(QtCore.QRect(0, 0, boxMaxLength+50, compressedRowHight * len(self.showBox)))
     def searchVariables(self):
+        """
+        Search and filter variables based on user input.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the method. Expected to have the following attributes:
+            - variables_Scroll: An object with a `variableSearch` attribute that has a `text()` method returning the search string.
+            - validVariables: A list of variable box objects, each having a `hint` attribute with `key` and `type` string attributes.
+            - showVariables: A method that takes a list of variable boxes and displays them.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It updates the displayed variables by calling `showVariables`.
+        """
         searhText = self.variables_Scroll.variableSearch.text().strip()
         showBox = []
         if len(searhText)>2:
@@ -599,6 +1083,23 @@ class ResultBox(QtWidgets.QWidget):
         if len(searhText)==0:
             self.showVariables(self.validVariables)
     def extrudeResult(self):
+        """
+        Extrude result data based on selected variables, calculator method, and frequency from GUI components.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the GUI elements and project model. Expected to have
+            attributes: `showBox` (list of QCheckBox with `isChecked` and `hint`), `calculator` (object
+            with `caseSummary`, `buttonGroup`, and `selectBox`), `timeStep` (object with `buttonGroup`
+            and `selectBox`), and `prj` (project object with `model` that has `group_result` method).
+        
+        Returns
+        -------
+        result : object
+            The result object returned by `self.prj.model.group_result`, with updated metadata including
+            the selected calculation method. If an exception occurs, None is returned after printing traceback.
+        """
         try:
             _variables = []
             for _varBox in self.showBox:
@@ -633,6 +1134,22 @@ class ResultBox(QtWidgets.QWidget):
             traceback.print_exc()
 
     def toCsv(self):
+        """
+        Save the extruded result to a CSV file using a file dialog.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. It is expected to have
+            `prj` attribute with a `model` field, and an `extrudeResult` method that 
+            returns a pandas DataFrame-like object.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It saves the result to a CSV file 
+            and opens the file location if successful.
+        """
         try:
             if self.prj.model is not None:
                 filePath, filetype = QtWidgets.QFileDialog.getSaveFileName(self, "Select the CSV saving path", "./",
@@ -645,6 +1162,22 @@ class ResultBox(QtWidgets.QWidget):
             traceback.print_exc()
 
     def plot(self):
+        """
+        Plot the extruded results using matplotlib and save each plot as an image file.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the `plot` method. It is expected to have
+            `extrudeResult`, `prj`, and `Dialog` attributes. The `extrudeResult` method should return 
+            an object with `data`, `metaData`, `variables`, and `frequency` attributes.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It generates and saves plots, then displays them 
+            in a dialog window.
+        """
         try:
             from matplotlib import pyplot as plt
             result = self.extrudeResult()
@@ -664,6 +1197,27 @@ class ResultBox(QtWidgets.QWidget):
 #
 #     def __init__(self, parent=None, item: IDFGroupEditor = None, prj: project = None,
 #                  rect=QtCore.QRect(0, 0, 220, 100), clickElement=None):
+"""
+Initialize an IDFGroupEditorBox instance.
+
+Parameters
+----------
+parent : QWidget, optional
+    Parent widget. Default is None.
+item : IDFGroupEditor or IDFEditor, optional
+    Editor item to be managed by the box. If an IDFEditor is provided, it will be wrapped in an IDFGroupEditor.
+    Default is None.
+prj : project, optional
+    Project instance associated with the editor. Default is None.
+rect : QtCore.QRect, optional
+    Geometry rectangle defining the position and size of the widget. Default is QRect(0, 0, 220, 100).
+clickElement : callable, optional
+    Callback function to be invoked when an element is clicked. Default is None.
+
+Returns
+-------
+None
+"""
 #         super(IDFGroupEditorBox, self).__init__(parent)
 #         if isinstance(item, IDFEditor):
 #             item = IDFGroupEditor(item)
@@ -727,6 +1281,25 @@ class ResultBox(QtWidgets.QWidget):
 #             self.arrange()
 #
 #     def click_field(self):
+"""
+Handle checkbox state changes for fields in the IDF object list.
+
+Updates the GUI representation of fields based on checkbox states, adding or removing sampler objects
+from the layout when checkboxes are checked or unchecked, respectively. Resets and reorganizes
+the editing box if necessary.
+
+Parameters
+----------
+self : object
+    The instance of the class containing this method. Expected to have the following attributes:
+    - idfobjectlist (dict): Nested dictionary containing field information with checkbox and state data.
+    - fieldeditbox (dict): Dictionary mapping keys to editing boxes with grid layouts.
+    - create_sampler_object (method): Method to create a sampler line object for a given object string.
+
+Returns
+-------
+None
+"""
 #         try:
 #             for key in self.idfobjectlist.keys():
 #                 for field in self.idfobjectlist[key].keys():
@@ -749,6 +1322,20 @@ class ResultBox(QtWidgets.QWidget):
 #             print(traceback.format_exc())
 #
 #     def reset_editing_box(self, key):
+"""
+Reset the editing box widget for a given key.
+
+Parameters
+----------
+key : str
+    The key identifying the editing box to be reset. Used to access and update
+    the corresponding widget in `self.fieldeditbox` and related field objects in `self.idfobjectlist`.
+
+Returns
+-------
+None
+    This function does not return any value.
+"""
 #         editingbox = self.fieldeditbox[key]
 #         new_editingbox = QtWidgets.QWidget(self)
 #         new_editingbox.gridlayout = QtWidgets.QGridLayout(new_editingbox)
@@ -768,6 +1355,22 @@ class ResultBox(QtWidgets.QWidget):
 #         self.fieldeditbox[key] = new_editingbox
 #
 #     def create_sampler_object(self, objstr):
+"""
+Create a Qt widget for sampling with a combo box to select sampler objects.
+
+Parameters
+----------
+objstr : str
+    String identifier for the object, formatted as 'key>field' to locate the 
+    specific object and field in the internal data structure.
+
+Returns
+-------
+QtWidgets.QWidget
+    A QWidget containing a horizontal layout with a label for the field name 
+    and a QComboBox for selecting available samplers. The widget is configured 
+    with signals to update the sampler when selection changes.
+"""
 #         objstr2 = objstr.split('>')
 #         key = objstr2[0] + '>' + objstr2[1]
 #         field = objstr2[2]
@@ -799,6 +1402,22 @@ class ResultBox(QtWidgets.QWidget):
 #         return samplerline
 #
 #     def updatesampler(self, objstr):
+"""
+Update the sampler configuration for a given object string.
+
+Parameters
+----------
+objstr : str
+    String identifier for the object, formatted as 'key>field' to locate the specific 
+    sampler within the idfobjectlist. The string is split to extract key and field 
+    components used to access the corresponding editor and sampler settings.
+
+Returns
+-------
+None
+    This function does not return any value. It modifies the internal state of the 
+    sampler widget and its associated arguments box in the GUI.
+"""
 #         try:
 #             objstr2 = objstr.split('>')
 #             key = objstr2[0] + '>' + objstr2[1]
@@ -830,6 +1449,22 @@ class ResultBox(QtWidgets.QWidget):
 #             print(traceback.format_exc())
 #
 #     def create_argsbox(self, objstr):
+"""
+Create a Qt widget for editing arguments of an object field.
+
+Parameters
+----------
+objstr : str
+    String identifier for the object, formatted as 'key1>key2>field' to specify 
+    the path to the target field in the object structure.
+
+Returns
+-------
+QtWidgets.QWidget
+    A QWidget containing a QHBoxLayout with QLabel and QLineEdit pairs for each 
+    argument in the specified object field. The widget allows interactive editing 
+    of argument values and triggers updates via signal connections.
+"""
 #         objstr2 = objstr.split('>')
 #         key = objstr2[0] + '>' + objstr2[1]
 #         field = objstr2[2]
@@ -851,6 +1486,20 @@ class ResultBox(QtWidgets.QWidget):
 #         return argsbox
 #
 #     def change_args(self, objstr):
+"""
+Update the arguments of an editor based on the provided object string.
+
+Parameters
+----------
+objstr : str
+    A string representing the object identifier, expected to be in a format 
+    that can be split by '>' to extract key and field information.
+
+Returns
+-------
+None
+    This function does not return any value.
+"""
 #         objstr2 = objstr.split('>')
 #         key = objstr2[0] + '>' + objstr2[1]
 #         field = objstr2[2]
@@ -865,6 +1514,19 @@ class ResultBox(QtWidgets.QWidget):
 #             editor.generate()
 #
 #     def arrange(self, rowHeight=30):
+"""
+Arrange the layout of the field editing boxes and set geometry based on row count and height.
+
+Parameters
+----------
+rowHeight : int, optional
+    The height of each row in pixels. Default is 30.
+
+Returns
+-------
+None
+    This function does not return any value.
+"""
 #         total_row = np.sum([box.gridlayout.rowCount() for box in self.fieldeditbox.values()])
 #         self.setGeometry(self.pos().x(), self.pos().y(), 800, int(total_row * rowHeight))
 #         self.setMinimumHeight(int(total_row * rowHeight))
@@ -885,6 +1547,22 @@ class ResultBox(QtWidgets.QWidget):
 #                 editingbox.gridlayout.setColumnStretch(i, 100)
 #
 #     def packGroupEditor(self):
+"""
+Pack selected group editors into a single IDFGroupEditor instance.
+
+Parameters
+----------
+self : object
+    The instance of the class containing the `idfobjectlist` attribute, which stores 
+    editor configuration dictionaries keyed by object ID and field name. Each entry 
+    contains 'checked' (bool) and 'editor' (object) fields.
+
+Returns
+-------
+IDFGroupEditor
+    A combined editor object created from the selected individual editors where 
+    the 'checked' flag is True.
+"""
 #         editors = []
 #         for key in self.idfobjectlist.keys():
 #             for field in self.idfobjectlist[key].keys():
@@ -895,14 +1573,52 @@ class ResultBox(QtWidgets.QWidget):
 #         return geditor
 #
 #     def dragEnterEvent(self, a0: QtGui.QDragEnterEvent):
+"""
+Handle the drag enter event for the widget.
+
+Parameters
+----------
+a0 : QtGui.QDragEnterEvent
+    The drag enter event containing information about the dragged data and its MIME types.
+
+Returns
+-------
+None
+    This function does not return any value.
+"""
 #         self.setStyleSheet('background-color: rgb(220,220,250);')
 #         a0.setDropAction(Qt.MoveAction)
 #         a0.accept()
 #
 #     def dragLeaveEvent(self, a0: QtGui.QDragLeaveEvent):
+"""
+Handle the drag leave event for the widget.
+
+Parameters
+----------
+a0 : QtGui.QDragLeaveEvent
+    The drag leave event object containing information about the event.
+
+Returns
+-------
+None
+    This function does not return any value.
+"""
 #         self.setStyleSheet('background-color: white;')
 #
 #     def mousePressEvent(self, event: QtGui.QMouseEvent):
+"""Handle mouse press events for drag-and-drop and checkbox interaction.
+
+        Parameters
+        ----------
+        event : QtGui.QMouseEvent
+            The mouse event containing information about the button pressed, position, and modifiers.
+
+        Returns
+        -------
+        None
+            This method does not return a value.
+        """
 #         super(IDFGroupEditorBox, self).mousePressEvent(event)
 #         try:
 #             if event.button() == Qt.RightButton:
@@ -935,6 +1651,25 @@ class ResultBox(QtWidgets.QWidget):
 
 # class LineChart(QtWidgets.QFrame):
 #     def __init__(self, parent, rect: QtCore.QRect, data: list, color: list):
+"""
+Initialize a LineChart object with parent widget, geometry, data, and color settings.
+
+Parameters
+----------
+parent : QWidget
+    Parent widget to which this LineChart belongs.
+rect : QtCore.QRect
+    Geometry rectangle defining the position and size of the chart.
+data : list of array-like
+    List of data series, where each series is a collection of (x, y) points; used to compute axis dimensions.
+color : list of str or tuple
+    List of colors for the lines, each color specified as a string or RGB tuple.
+
+Returns
+-------
+None
+    This constructor does not return a value.
+"""
 #         super(LineChart, self).__init__(parent=parent)
 #         self.setGeometry(rect)
 #         self.data = [np.array(dataTwins) for dataTwins in data]
@@ -945,6 +1680,18 @@ class ResultBox(QtWidgets.QWidget):
 #         self.lineColor = color
 #
 #     def paintEvent(self, a0: QtGui.QPaintEvent) -> None:
+"""Handle the paint event to render graphical elements on the widget.
+
+Parameters
+----------
+a0 : QtGui.QPaintEvent
+    The paint event object containing information about the paint request.
+
+Returns
+-------
+None
+    This function does not return any value.
+"""
 #         self.painter = QPainter()
 #         self.painter.begin(self)
 #
@@ -960,6 +1707,23 @@ class ResultBox(QtWidgets.QWidget):
 #         self.painter.end()
 #
 #     def drewLines(self, color: QColor, xSeries, ySeries):
+"""
+Draw lines on a canvas using specified color and coordinate series.
+
+Parameters
+----------
+color : QColor
+    The color to use for drawing the lines.
+xSeries : array-like
+    Sequence of x-coordinates to be drawn. Will be scaled to canvas width based on xDim.
+ySeries : array-like
+    Sequence of y-coordinates to be drawn. Will be scaled to canvas height based on yDim.
+
+Returns
+-------
+None
+    This function does not return any value.
+"""
 #         pen = QtGui.QPen(color, 2, Qt.SolidLine)
 #         self.painter.setPen(pen)
 #         xSeries = self.width() * (np.array(xSeries) - self.xDim[0]) / (self.xDim[1] - self.xDim[0])
@@ -969,6 +1733,21 @@ class ResultBox(QtWidgets.QWidget):
 #             self.painter.drawLine(xSeries[i], ySeries[i], xSeries[i + 1], ySeries[i + 1])
 #
 #     def drewLine(self, xSeries, ySeries):
+"""
+Draw a line on a painter object using the first and last points of given x and y series.
+
+Parameters
+----------
+xSeries : array_like
+    Sequence of x-coordinates; must have at least two elements.
+ySeries : array_like
+    Sequence of y-coordinates; must have at least two elements.
+
+Returns
+-------
+None
+    This function does not return any value.
+"""
 #         pen = QtGui.QPen(QColor(0, 0, 0), 2, Qt.SolidLine)
 #         self.painter.setPen(pen)
 #         self.painter.drawLine(xSeries[0], ySeries[0], xSeries[-1], ySeries[-1])

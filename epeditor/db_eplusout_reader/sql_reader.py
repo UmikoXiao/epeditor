@@ -91,6 +91,24 @@ def to_string(unicode_variable):
 
 
 def get_unsorted_sub_dict(rows):
+    """
+    Construct an unsorted dictionary mapping IDs to string representations of variables.
+    
+    Parameters
+    ----------
+    rows : iterable of tuple
+        An iterable where each element is a tuple containing five values:
+        id_ (hashable): Unique identifier for the variable.
+        frequency (any): Frequency value (not used in function).
+        key (str): Key or name of the variable.
+        type_ (str): Type of the variable.
+        units (str): Units associated with the variable.
+    
+    Returns
+    -------
+    dict
+        A dictionary mapping each id_ to the string representation of its corresponding Variable object.
+    """
     unsorted_dict = {}
     for id_, frequency, key, type_, units in rows:
         unicode_variable = Variable(key, type_, units)
@@ -100,6 +118,19 @@ def get_unsorted_sub_dict(rows):
 
 
 def sort_by_value(unsorted_dict):
+    """
+    Sort a dictionary by its values in ascending order.
+    
+    Parameters
+    ----------
+    unsorted_dict : dict
+        The input dictionary to be sorted by value.
+    
+    Returns
+    -------
+    collections.OrderedDict
+        A new ordered dictionary sorted by the original dictionary's values in ascending order.
+    """
     sorted_dct = OrderedDict()
     sorted_items = [item for item in sorted(unsorted_dict.items(), key=lambda x: x[1])]
     for key, value in sorted_items:
@@ -203,6 +234,23 @@ def parse_sql_timestamps(time_rows):
 
 
 def filter_timestamps(timestamps, start_date, end_date):
+    """
+    Filter timestamps within a specified date range.
+    
+    Parameters
+    ----------
+    timestamps : list of str or list of datetime
+        List of timestamps to be filtered.
+    start_date : str or datetime
+        The start date to filter timestamps. Timestamps before this date will be excluded.
+    end_date : str or datetime
+        The end date to filter timestamps. Timestamps after this date will be excluded.
+    
+    Returns
+    -------
+    list of str or list of datetime
+        A list of timestamps that fall within the specified date range [start_date, end_date].
+    """
     valid_timestamps = []
     for timestamp in timestamps:
         if validate_time(timestamp, start_date, end_date):

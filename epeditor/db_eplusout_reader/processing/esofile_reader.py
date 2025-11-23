@@ -203,6 +203,21 @@ def process_month_rp_frequency_line(line_id, data):
 
 
 def split_raw_line(raw_line):
+    """
+    Split a raw comma-separated line into an ID and the remaining elements.
+    
+    Parameters
+    ----------
+    raw_line : str
+        A string containing comma-separated values, where the first value is an integer ID.
+    
+    Returns
+    -------
+    line_id : int
+        The first element of the split line, converted to an integer.
+    line : list of str
+        The remaining elements of the split line as a list of strings.
+    """
     split_line = raw_line.split(",")
     line_id = int(split_line[0])
     line = split_line[1:]
@@ -210,6 +225,29 @@ def split_raw_line(raw_line):
 
 
 def process_frequency_line(line_id, line, all_raw_outputs, header, raw_outputs):
+    """
+    Process a frequency line and update raw output data accordingly.
+    
+    Parameters
+    ----------
+    line_id : int
+        Identifier for the type of line being processed (e.g., environment, daily, monthly).
+    line : list of str
+        The current line of data to be processed, split into fields.
+    all_raw_outputs : list of RawOutputData
+        List containing all raw output data objects, updated in place when a new environment is encountered.
+    header : list of str
+        Column headers used to initialize a new RawOutputData object when starting a new environment.
+    raw_outputs : RawOutputData
+        Current raw output data object being populated; may be replaced if a new environment is detected.
+    
+    Returns
+    -------
+    raw_outputs : RawOutputData
+        Updated or newly created raw output data object after processing the line.
+    frequency : str or None
+        The frequency label (e.g., 'hourly', 'daily') extracted from the line, or None if the line is an environment line.
+    """
     if line_id == ENVIRONMENT_LINE:
         # initialize variables for current environment
         environment_name = line[0].strip()

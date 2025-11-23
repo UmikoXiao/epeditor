@@ -223,6 +223,20 @@ def run_with_cpu(
 
 
 def occupy(idf_path):
+    """
+    Check if a file lock can be acquired by creating a 'start' file.
+    
+    Parameters
+    ----------
+    idf_path : str
+        The path to the directory where the 'start' file will be created or checked.
+    
+    Returns
+    -------
+    bool
+        True if the 'start' file already exists (indicating the resource is occupied),
+        False otherwise (indicating the lock was successfully acquired).
+    """
     if os.path.exists(idf_path + 'start'):
         return True
     with open(idf_path + 'start', "w") as f:
@@ -256,15 +270,90 @@ def make_eplaunch_options(idf, **kwargs):
 
 
 def error_callback(error):
+    """
+    Prints an error message with a formatted prefix.
+    
+    Parameters
+    ----------
+    error : Any
+        The error object or message to be printed. Can be of any type that supports string representation.
+    
+    Returns
+    -------
+    None
+        This function does not return any value.
+    """
     print(f'****Process Error: {error}')
 
 
 def return_callback(msg):
+    """
+    Prints the provided message to the console.
+    
+    Parameters
+    ----------
+    msg : str
+        The message to be printed.
+    
+    Returns
+    -------
+    None
+    """
     print(msg)
 
 
 def simulate_file(idf_path: str, epw: str, idd: str = None, overwrite=False, verbose='q', cpu_index=None,long_dir=False, **kwargs):
+    """
+    Simulate an EnergyPlus model using specified input files and configuration.
+    
+    Parameters
+    ----------
+    idf_path : str
+        Path to the IDF (Input Data File) file for the simulation.
+    epw : str
+        Path to the EPW (EnergyPlus Weather) file.
+    idd : str, optional
+        Path to the IDD (Input Data Dictionary) file. If not provided, uses default IDD.
+    overwrite : bool, default False
+        If True, overwrites existing output files; otherwise, preserves them.
+    verbose : str, default 'q'
+        Verbosity level for EnergyPlus output ('q' for quiet, 'v' for verbose).
+    cpu_index : int, optional
+        Index of the CPU core to use for the simulation. If None, uses default behavior.
+    long_dir : bool, default False
+        If True, uses a long directory name for output files; otherwise, uses short name.
+    **kwargs : dict
+        Additional keyword arguments passed to the EnergyPlus simulation environment.
+    
+    Returns
+    -------
+    bool
+        True if simulation completes successfully, False otherwise.
+    """
     def _processing(idf_path: str, epw: str, idd: str = None, overwrite=False,long_dir=False, **kwargs):
+        """
+        Perform preprocessing for EnergyPlus simulation.
+        
+        Parameters
+        ----------
+        idf_path : str
+            Path to the IDF file.
+        epw : str
+            Path to the EPW weather file.
+        idd : str, optional
+            Path to the IDD file. If not provided, it will be automatically determined from the IDF path.
+        overwrite : bool, default False
+            If True, overwrite the existing output directory.
+        long_dir : bool, default False
+            If True, create a longer directory name combining the IDF and EPW base names.
+        **kwargs : dict
+            Additional keyword arguments passed to `make_eplaunch_options`.
+        
+        Returns
+        -------
+        str
+            Status message indicating result existence, skip information, or installation issues.
+        """
         if not check_installation(idf_path):
             return f'Energyplus Ver.{get_version(idf_path)} is not yet installed.'
         if idd is None:
@@ -305,12 +394,40 @@ def simulate_file(idf_path: str, epw: str, idd: str = None, overwrite=False, ver
         """
         #
         # def _makerandomword(length=6):
+        """Generate a random word of specified length using UUID.
+        
+        Parameters
+        ----------
+        length : int, optional
+            The length of the random word to generate. Default is 6.
+        
+        Returns
+        -------
+        str
+            A random hexadecimal string of the specified length.
+        """
         #     import uuid
         #
         #     fullword = uuid.uuid4().hex
         #     return fullword[:length]
         #
         # def _maketempname(idfname, randlength=6):
+        """
+        Generate a temporary filename based on the input IDF file name and a random suffix.
+        
+        Parameters
+        ----------
+        idfname : str
+            The original IDF file name. If it ends with '.idf', the temporary name will be derived from the base name.
+        randlength : int, optional
+            Length of the random alphanumeric suffix to append (default is 6).
+        
+        Returns
+        -------
+        str
+            The generated temporary filename with a random suffix and '.idf' extension,
+            prefixed by the base name if the original name ends in '.idf'.
+        """
         #     idfname = str(idfname)
         #     t_suffix = _makerandomword(randlength)
         #     randomname = f"{t_suffix}.idf"
@@ -357,6 +474,33 @@ def simulate_file(idf_path: str, epw: str, idd: str = None, overwrite=False, ver
 
 
 def simulate_sequence(idfs: list, epw: str, idd: str = None, overwrite=False, verbose='q', cpu_index=None,long_dir=False, **kwargs):
+    """
+    Simulate a sequence of EnergyPlus IDF files using specified weather and directory settings.
+    
+    Parameters
+    ----------
+    idfs : list
+        List of file paths to IDF files or IDF objects to be simulated.
+    epw : str
+        Path to the EPW weather file used for the simulation.
+    idd : str, optional
+        Path to the IDD file. If not provided, the default IDD is used.
+    overwrite : bool, default False
+        If True, overwrites existing output files; otherwise, skips simulation if outputs exist.
+    verbose : str, default 'q'
+        Verbosity level for EnergyPlus simulation output ('q' for quiet, 'v' for verbose, etc.).
+    cpu_index : int, optional
+        Identifier for the CPU/process running the simulation, used in logging.
+    long_dir : bool, default False
+        If True, uses long directory names for output; otherwise, uses short names.
+    **kwargs : dict
+        Additional keyword arguments passed to the simulate_file function.
+    
+    Returns
+    -------
+    None
+        This function does not return any value. It runs simulations and prints timing information.
+    """
     import time
     t1 = time.time()
     for idf_path in idfs:
@@ -371,6 +515,35 @@ def simulate_sequence(idfs: list, epw: str, idd: str = None, overwrite=False, ve
 
 def simulate_local(idf_path: str, epw: str, idd: str = None, overwrite=False, stdout=sys.stdout, verbose='q',
                    prs_count=7, forceCPU=False, **kwargs):
+    """
+    Simulate EnergyPlus models locally from IDF and EPW files, either single or multiple runs.
+    
+    Parameters
+    ----------
+    idf_path : str
+        Path to the IDF file or directory containing multiple IDF files.
+    epw : str or list of str
+        Path(s) to the EPW weather file(s). Can be a single file path or a list of paths.
+    idd : str, optional
+        Path to the IDD file. If not provided, uses default IDD.
+    overwrite : bool, optional
+        If True, overwrites existing output files. Default is False.
+    stdout : file-like object, optional
+        Standard output stream. Default is sys.stdout.
+    verbose : str, optional
+        Verbosity level for EnergyPlus simulation ('q' for quiet, 'v' for verbose). Default is 'q'.
+    prs_count : int, optional
+        Number of parallel processes to use when simulating multiple files. Default is 7.
+    forceCPU : bool, optional
+        If True, forces distribution of work across CPUs even if the number of processes is high. Default is False.
+    **kwargs
+        Additional keyword arguments passed to underlying simulation functions.
+    
+    Returns
+    -------
+    int
+        Returns 1 upon successful completion of all simulations.
+    """
     sys.stdout = stdout
     if isinstance(idf_path, IDF):
         idf_path = idf_path.idfabsname
@@ -417,6 +590,29 @@ def simulate_local(idf_path: str, epw: str, idd: str = None, overwrite=False, st
 
 
 def simulate_cloud(idfs: list, epw: str, project_name: str = None,overwrite=True, prs_count=8, **kwargs):
+    """
+    Simulate EnergyPlus models in the cloud using provided IDF files and an EPW file.
+    
+    Parameters
+    ----------
+    idfs : list of str or str
+        List of file paths to IDF files, or a directory path containing IDF files.
+    epw : str
+        File path to the EPW weather file used for simulation.
+    project_name : str, optional
+        Name of the project directory. If not provided, a random 4-character code is generated.
+    overwrite : bool, default True
+        If False, skips uploading and processing for existing project directories.
+    prs_count : int, default 8
+        Number of parallel processes to use (currently ignored; parameter is invalid).
+    **kwargs
+        Additional keyword arguments passed as command-line options to the EnergyPlus executable.
+    
+    Returns
+    -------
+    int
+        Returns 1 upon successful completion of all simulations.
+    """
     """
     prs_count is invalid currently.
     """
@@ -549,6 +745,21 @@ def simulate_cloud(idfs: list, epw: str, project_name: str = None,overwrite=True
 
 
 def sshRunCmd(address, simDir):
+    """
+    Execute a remote script via SSH after waiting for a file to be created.
+    
+    Parameters
+    ----------
+    address : str
+        The IP address or hostname of the remote machine to connect to via SSH.
+    simDir : str
+        The directory name under which the process.run script is located on the remote machine.
+    
+    Returns
+    -------
+    None
+        This function does not return any value.
+    """
     for i in range(10):
         if not os.path.exists(rf'\\166.111.40.8\temp\epeditor\project/{simDir}/process.run'):
             time.sleep(1)
@@ -557,6 +768,19 @@ def sshRunCmd(address, simDir):
 
 
 def find_sql(idf_dir: str):
+    """
+    Find SQL files in a given directory and map them by case name.
+    
+    Parameters
+    ----------
+    idf_dir : str
+        Directory path to search for SQL files. The function recursively traverses this directory.
+    
+    Returns
+    -------
+    dict
+        A dictionary mapping case names (derived from the parent directory of each SQL file) to the full path of the SQL file.
+    """
     file_package = os.walk(idf_dir)
     sql = {}
     for dirpath, dirnames, filenames in file_package:

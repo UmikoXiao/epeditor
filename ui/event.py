@@ -25,6 +25,19 @@ class Signal(QObject):
     text_update = pyqtSignal(str)
 
     def write(self, text):
+        """
+        Emit a text update signal and process pending GUI events.
+        
+        Parameters
+        ----------
+        text : str
+            The text to be emitted via the text_update signal. Will be converted to string if not already.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         self.text_update.emit(str(text))
         # loop = QEventLoop()
         # QTimer.singleShot(100, loop.quit)
@@ -33,6 +46,19 @@ class Signal(QObject):
 
 
 def get_dir(hint):
+    """
+    Get the directory path associated with a given hint from a JSON configuration file.
+    
+    Parameters
+    ----------
+    hint : str
+        The key to look up in the JSON file 'defaultDir.json'. Represents a directory alias.
+    
+    Returns
+    -------
+    str
+        The directory path associated with the hint if it exists and is valid; otherwise, returns '.' (current directory).
+    """
     with open('defaultDir.json', 'r+') as f:
         dirs = json.load(f)
         if hint in dirs:
@@ -42,6 +68,21 @@ def get_dir(hint):
 
 
 def write_dir(hint, path):
+    """
+    Write a directory path associated with a hint to a JSON file.
+    
+    Parameters
+    ----------
+    hint : str
+        The key or identifier used to store the directory path in the JSON file.
+    path : str
+        The full file path from which the directory name will be extracted and stored.
+    
+    Returns
+    -------
+    None
+        This function does not return any value.
+    """
     dirs = {}
     with open('defaultDir.json', 'r+') as f:
         dirs = json.load(f)
@@ -52,10 +93,35 @@ def write_dir(hint, path):
 
 class TextStream(QObject):
     def __init__(self, stdout):
+        """
+        Initialize the instance with a specified output stream.
+        
+        Parameters
+        ----------
+        stdout : file-like object
+            The output stream to which the printer will write. This should be a file-like object that supports writing strings.
+        
+        Returns
+        -------
+        None
+        """
         super().__init__()
         self.printer = stdout
 
     def write(self, text):
+        """
+        Update the printer text in the MainWindow and process GUI events.
+        
+        Parameters
+        ----------
+        text : str
+            The text string to be displayed in the printer widget of the MainWindow.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         _translate = QtCore.QCoreApplication.translate
         self.printer.repaint()
         self.printer.setText(_translate("MainWindow", text))
@@ -63,11 +129,38 @@ class TextStream(QObject):
         QApplication.processEvents()
 
     def flush(self):
+        """Flush the internal buffer or state of the object.
+        
+        This method is intended to clear or write any buffered data, 
+        though the specific behavior may depend on the implementation.
+        
+        Parameters
+        ----------
+        self : MultiInputDialog
+            The instance of MultiInputDialog on which the flush method is called.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         return
 
 
 class MultiInputDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
+        """
+        Initialize the Parallelized Event Dialog with UI components for simulation method selection and local parameters.
+        
+        Parameters
+        ----------
+        parent : QtWidgets.QWidget or None, optional
+            Parent widget. If None, the dialog will be independent.
+        
+        Returns
+        -------
+        None
+        """
         """
         fields  : list[str]         每栏提示文本
         defaults: list[str] | None 默认值
@@ -131,9 +224,35 @@ class MultiInputDialog(QtWidgets.QDialog):
 # 中间类Window的写法
 class Window(Ui_MainWindow, QtWidgets.QMainWindow):
     def closeEvent(self, a0):
+        """
+        Handle the close event by performing cleanup operations.
+        
+        Parameters
+        ----------
+        a0 : QCloseEvent
+            The close event object that triggered this method.
+        
+        Returns
+        -------
+        None
+        """
         cleanMsg()
 
     def __init__(self, MainWindow, prj=project()):
+        """
+        Initialize the Window instance with UI setup and project configuration.
+        
+        Parameters
+        ----------
+        MainWindow : QMainWindow
+            The main window object to be used for UI setup.
+        prj : project, optional
+            The project instance to be associated with the window (default is a new project()).
+        
+        Returns
+        -------
+        None
+        """
         super(Window, self).__init__()
         self.setupUi(MainWindow)
         self.prj = prj
@@ -153,6 +272,25 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
         self.initLayout()
 
     def initLayout(self):
+        """
+        Initialize the layout and UI components of the main window.
+        
+        This method sets up the graphical user interface elements including the IDF editor, 
+        search result area, group editor, result analysis area, and various buttons and menus. 
+        It also connects signals to their respective slots and applies stylesheet formatting. 
+        The layout is adjusted based on whether a baseline IDF file has been loaded.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. Expected to have attributes such as
+            `IDFEditorDumpArea`, `searchResultArea`, `analysisArea`, `prj`, `PutthemintoGroup`,
+            `ResultAnalysis`, and various `action*` menu items.
+        
+        Returns
+        -------
+        None
+        """
         self.cleanBrowser(False)
         _translate = QtCore.QCoreApplication.translate
         # IDFEditor editing area
@@ -248,6 +386,21 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
             self.analysisArea.Layout.replaceWidget(self.importButton, self.groupEditorArea_Scroll)
 
     def updatetext(self, text):
+        """
+        Update the text in the text browser widget.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method.
+        text : str
+            The text string to be appended to the text browser.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         """更新textBrowser"""
         _translate = QtCore.QCoreApplication.translate
         # self.massage.setText()
@@ -258,6 +411,23 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
         self.textBrowser.ensureCursorVisible()
 
     def action_write(self):
+        """
+        Perform batch writing of IDF files to a selected directory.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. It is expected to have
+            attributes `groupEditorArea` and `prj`, where `prj` contains a `model` with
+            a `write` method, and methods `get_dir` and `write_dir` are available for 
+            handling directory paths.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It performs side effects by writing 
+            files to the file system and may display GUI messages or error traces.
+        """
         try:
             geditor, fileNames = self.groupEditorArea.crossAllGroupEditors()
             QtWidgets.QMessageBox.information(self,"Select the saving path","请选择一个文件夹，idf文件将会批量写入该文件夹\nSelect a folder to drop the idf files!")
@@ -269,6 +439,21 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
             traceback.print_exc()
 
     def action_Simulation(self):
+        """
+        Run the simulation process, handling model and weather file setup if necessary.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the project and model attributes.
+            Must have a `prj` attribute with a `model` (IDFModel) that may contain a `folder` path.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It performs actions such as prompting the user for directories,
+            writing files, and initiating a simulation via `self.simulation()`.
+        """
         try:
             if self.prj.model:
                 if not self.prj.model.folder:
@@ -292,6 +477,22 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
             traceback.print_exc()
 
     def action_continueSimulation(self):
+        """
+        Continue the simulation process by ensuring model and folder are properly set.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. It is expected to have a `prj` 
+            attribute with a `model` (IDFModel) and associated attributes such as `folder`. 
+            Also requires access to GUI elements like QMessageBox and QFileDialog via `QtWidgets`.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It performs actions such as setting up 
+            the model, prompting user input for directory selection, and initiating simulation.
+        """
         try:
             if not self.prj.model:
                 self.prj.model = IDFModel(os.path.abspath(r'doc\Base-Office.idf'))
@@ -308,6 +509,21 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
             traceback.print_exc()
 
     def simulation(self):
+        """
+        Run the simulation by selecting an EnergyPlus Weather (EPW) file and configuring simulation parameters.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the GUI and project model. It provides access to UI elements,
+            project data, and configuration settings required for the simulation.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It performs actions including opening file dialogs,
+            executing a simulation, updating the UI state, and connecting signals upon completion.
+        """
         QtWidgets.QMessageBox.information(self, "Select the weather",
                                           "选择一个EPW气象文件用于模拟\nSelect the EnergyPlus Weather file for simulation.")
         filePath, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Select the EnergyPlus Weather Files",
@@ -335,16 +551,71 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
                 print('******ALL DONE******')
 
     def action_idfreference(self):
+        """Open the InputOutputReference.pdf document using the system's default PDF viewer.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. This parameter is required for method binding but is not used within the function.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         os.system(r'doc\InputOutputReference.pdf')
 
     def action_readme(self):
+        """Open the ReadMe.md file located in the doc directory using the default system application.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. This parameter is required for method binding but is not used within the function.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         os.system(r'doc\ReadMe.md')
 
     def action_printAbout(self):
+        """
+        Print the contents of the About.md file.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         with open(r'doc\About.md') as f:
             print(f.read())
 
     def action_Result_Folder(self):
+        """
+        Handle selection and processing of a result folder for simulation analysis.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. Expected to have attributes 
+            `prj`, `resultAnalysisArea`, and `exportButton`. The `prj` attribute should 
+            contain a `model` for handling IDF data, and `resultAnalysisArea` should support 
+            result initialization and export functionality.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It performs side effects including 
+            updating the project model, reading result data from a directory, initializing 
+            the result view, and connecting the export button to CSV export functionality.
+        """
         try:
             if not self.prj.model:
                 self.prj.model = IDFModel(os.path.abspath(r'doc\Base-Office.idf'))
@@ -362,13 +633,62 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
             traceback.print_exc()
 
     def action_prjfolder(self):
+        """
+        Open the project folder in Windows Explorer.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the `project_folder` attribute.
+            It is expected to have a `project_folder` attribute of type str or None,
+            representing the path to the project directory.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         if self.project_folder:
             os.system("explorer.exe %s" % self.project_folder)
 
     def action_iddfolder(self):
+        """
+        Open the IDD folder in Windows Explorer.
+        
+        This function opens the 'idd' directory located inside the 'epeditor' folder 
+        using the default file explorer on Windows.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. This parameter is 
+            required for method consistency within the class, though it is not 
+            directly used in the function.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         os.system("explorer.exe .\\epeditor\\idd")
 
     def action_SimParams(self):
+        """
+        Save simulation parameters to a CSV file.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. It is expected to have
+            attributes `groupEditorArea` and `groupEditorArea.crossAllGroupEditors()` returning
+            a data structure with a `to_csv` method, and a valid parent widget for GUI operations.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It performs a side effect of writing
+            simulation parameters to a specified CSV file.
+        """
         try:
             geditor = self.groupEditorArea.crossAllGroupEditors()
             filePath, filetype = QtWidgets.QFileDialog.getSaveFileName(self, "Select the saving path",  get_dir('project'),
@@ -380,6 +700,20 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
             traceback.print_exc()
 
     def action_save(self):
+        """
+        Save the current project to the existing project path or prompt for a new path if not previously saved.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. It is expected to have attributes `saved` (bool),
+            `prj` (object with a `save` method), and `project_path` (str). The `action_saveAs` method must also be defined.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It performs side effects by saving the project and printing status or error messages.
+        """
         try:
             if self.saved:
                 self.prj.save(self.project_path)
@@ -390,6 +724,24 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
             print(traceback.format_exc())
 
     def action_saveAs(self):
+        """
+        Save the current project to a specified file path.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. It is expected to have
+            attributes `prj`, `project_path`, `project_folder`, and `saved`, as well
+            as methods `get_dir` and `write_dir`. It should also be a QtWidgets.QWidget
+            or compatible Qt class to use QFileDialog.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It performs side effects such as
+            saving the project to disk, updating instance attributes, and printing status
+            or error messages.
+        """
         try:
             filePath, filetype = QtWidgets.QFileDialog.getSaveFileName(self, "Select the saving path",  get_dir('project'),
                                                                        'Epeditor Zip Files (*.zip)')
@@ -405,6 +757,25 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
             print(traceback.format_exc())
 
     def action_load(self):
+        """
+        Load a project from a specified ZIP file path using a file dialog.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. It is expected to have 
+            attributes such as `prj`, `MainWindow`, `stdout`, `project_path`, 
+            `project_folder`, `saved`, and methods like `__init__`, `_updatePrj`, 
+            and `write_dir`. The `prj` attribute will be replaced with the loaded 
+            project data.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It modifies the state of the 
+            instance by loading and initializing the project, updating internal 
+            references, and refreshing the UI components accordingly.
+        """
         try:
             filePath, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Select the project file", get_dir('project'),
                                                                        'Epeditor Zip Files (*.zip)')
@@ -429,6 +800,18 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
             print(traceback.format_exc())
 
     def _updatePrj(self, prj):
+        """
+        Update the project reference in multiple UI areas.
+        
+        Parameters
+        ----------
+        prj : object
+            The project object to be assigned to various areas within the interface.
+        
+        Returns
+        -------
+        None
+        """
         self.searchResultArea.relatedArea.relateProcessingArea.prj = prj
         self.searchResultArea.keywordArea.prj = prj
         self.searchResultArea.relatedArea.prj = prj
@@ -437,6 +820,22 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
         self.resultAnalysisArea.prj = prj
 
     def action_import_idf(self):
+        """
+        Import an EnergyPlus IDF file into the project.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. It is expected to have 
+            attributes `MainWindow`, `stdout`, `prj`, and methods `__init__`, `_updatePrj`, 
+            as well as access to helper functions `get_dir`, `write_dir`, and `project`.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It updates the project state and UI 
+            upon successfully loading the IDF file, or prints an error traceback if failed.
+        """
         try:
             filePath, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Select the baseline *.idf file",
                                                                        get_dir('project'),
@@ -454,6 +853,19 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
             print(traceback.format_exc())
 
     def cleanBrowser(self, reconnect=True):
+        """
+        Clean and reset the browser interface with optional reconnection message.
+        
+        Parameters
+        ----------
+        reconnect : bool, optional
+            If True, prints a reconnection message using `cleanMsg()`. Default is True.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         self.textBrowser.clear()
         if reconnect:
             msg = cleanMsg()
@@ -467,6 +879,22 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
             "MoosasQA:I'm just a computer program, so I don't have feelings, but I'm here to help you! How can I assist you today?")
 
     def click_QA(self):
+        """
+        Handle and process a user question via QA interface.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. Expected to have an `exectext` 
+            attribute representing a text widget with methods `toPlainText`, `setText`, and 
+            storage of `lastText`.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It processes the input text, sends it 
+            for question answering, updates the text widget, and handles exceptions by printing tracebacks.
+        """
         try:
             lines = self.exectext.toPlainText()
             print('>>>' + lines)
@@ -478,6 +906,22 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
             print(traceback.format_exc())
 
     def executionLine(self):
+        """
+        Execute the code from the plain text of exectext and handle exceptions.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. It is expected to have
+            an attribute `exectext` (a QTextEdit or similar object) providing the
+            method `toPlainText()`, and a method `exec_L` for executing the retrieved lines.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It executes the provided code lines
+            via `exec_L` and prints a traceback if an exception occurs.
+        """
         try:
             lines = self.exectext.toPlainText()
             self.exec_L(lines)
@@ -485,6 +929,21 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
             print(traceback.format_exc())
 
     def exec_L(self, args):
+        """
+        Execute a command or question based on input arguments.
+        
+        Parameters
+        ----------
+        args : str
+            The input string to be processed. If it starts with '!' or '！', 
+            it is treated as a question and sent to an external QA system; 
+            otherwise, it is executed as a Python command.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         model = self.prj.model
         print('>>>' + args)
         if args[0] == '!' or args[0] == '！':
@@ -496,6 +955,20 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
         self.exectext.setText('')
 
     def click_Add(self):
+        """
+        Handle the add action by collecting checked search result items and adding them to the editor box.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. Expected to have attributes `searchResultArea`, 
+            `editorBoxArea`, and methods or properties related to the search result layout and keyword area.
+        
+        Returns
+        -------
+        None
+            This function does not return any value. It performs side effects by modifying the editor box area.
+        """
         try:
             adding = []
             for i in np.arange(self.searchResultArea.keywordArea.SearchResultLayout.count() - 1, -1, -1):
@@ -510,6 +983,21 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
             print(traceback.format_exc())
 
     def click_Add_Node(self):
+        """
+        Add selected nodes from search results to the editor box.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. Assumes the presence 
+            of attributes: searchResultArea, editorBoxArea, and related structures 
+            including gridlayout and IDFSearchResultBox widgets.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         try:
             adding = []
             for i in np.arange(self.searchResultArea.relatedArea.relateProcessingArea.gridlayout.count() - 1, -1, -1):
@@ -524,6 +1012,22 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
             print(traceback.format_exc())
 
     def clickStage2(self):
+        """
+        Switches the interface to Stage 2, displaying the group editor from CSV import.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. Expected to have attributes 
+            such as PutthemintoGroup, ResultAnalysis, exportButton, resultAnalysisArea, 
+            groupEditorArea, groupEditorArea_Scroll, analysisArea, and importButton, which 
+            are GUI elements managed during the stage transition.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         self.PutthemintoGroup.setStyleSheet(QTitleButton.selectStyleSheet)
         self.ResultAnalysis.setStyleSheet(QTitleButton.unselectStyleSheet)
         self.exportButton.setText('From *.csv')
@@ -542,6 +1046,22 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
             self.analysisArea.Layout.replaceWidget(self.groupEditorArea_Scroll, self.importButton)
             self.groupEditorArea_Scroll.hide()
     def clickStage3(self):
+        """
+        Activate stage 3 of the UI workflow, configuring the interface for result analysis.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. Expected to have attributes 
+            such as ResultAnalysis, PutthemintoGroup, exportButton, groupEditorArea, 
+            importButton, groupEditorArea_Scroll, resultAnalysisArea, analysisArea, and prj, 
+            which are used to manage UI state and data.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         self.ResultAnalysis.setStyleSheet(QTitleButton.selectStyleSheet)
         self.PutthemintoGroup.setStyleSheet(QTitleButton.unselectStyleSheet)
         self.exportButton.setText('Results to *.csv')

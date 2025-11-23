@@ -10,6 +10,24 @@ epEditor = os.path.abspath('.')
 
 
 def download(url, dest, chunk_size=1024):
+    """
+    Download a file from a given URL and save it to the specified destination.
+    
+    Parameters
+    ----------
+    url : str
+        The URL of the file to download.
+    dest : str
+        The destination path where the file should be saved. If the URL points to a .zip file,
+        the file is first saved as 'temp.zip', then extracted to this destination.
+    chunk_size : int, optional
+        The size of chunks in bytes used for streaming the download. Default is 1024.
+    
+    Returns
+    -------
+    None
+        This function does not return any value. It saves the downloaded file to disk and optionally extracts it if it's a ZIP archive.
+    """
     with requests.get(url) as response:
         if response.status_code == 200:
             if url.endswith('.zip'):

@@ -13,6 +13,20 @@ from .qtitle import ExecText
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
+        """
+        Set up the user interface for the main window by configuring widgets, layout, menus, and fonts.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing this method. Used to store references to UI elements.
+        MainWindow : QtWidgets.QMainWindow
+            The main window object to which the UI is being applied. This is configured with widgets, menus, and properties.
+        
+        Returns
+        -------
+        None
+        """
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1000, 1000)
         self.MainWindow=MainWindow
@@ -164,6 +178,21 @@ class Ui_MainWindow(object):
         self.arange()
 
     def arange(self,width=800,height=900):
+        """
+        Arrange the layout of GUI elements using a grid structure with proportional sizing.
+        
+        Parameters
+        ----------
+        width : int, optional
+            The total width for the main window and layout, by default 800.
+        height : int, optional
+            The total height for the main window and layout, by default 900.
+        
+        Returns
+        -------
+        None
+            This function does not return a value. It configures the layout and resizes widgets in place.
+        """
         rowStretch=[5,30,5,40,20,5]
         columnStretch=[10,20,40,15]
         columnWidth = [int(stretch/sum(columnStretch)*width) for stretch in columnStretch]
@@ -237,6 +266,21 @@ class Ui_MainWindow(object):
         self.MainWindow.resize(width, height)
 
     def retranslateUi(self, MainWindow):
+        """
+        Retranslates the UI elements of the main window to update text labels and titles.
+        
+        Parameters
+        ----------
+        self : object
+            The instance of the class containing the UI elements to be updated.
+        MainWindow : QMainWindow
+            The main window object whose title and UI elements' texts will be translated.
+        
+        Returns
+        -------
+        None
+            This function does not return any value.
+        """
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "EpeditorW 0.2.6"))
 

@@ -11,6 +11,27 @@ EsoTimestamp = namedtuple("EsoTimestamp", "month day hour end_minute")
 
 def parse_eso_timestamp(year, month, day, hour, end_minute):
     """
+    Convert EnergyPlus timestamp to a valid datetime object.
+    
+    Parameters
+    ----------
+    year : int
+        The year of the timestamp.
+    month : int
+        The month of the timestamp (1-12).
+    day : int
+        The day of the timestamp (1-31, depending on the month).
+    hour : int
+        The hour in EnergyPlus format (1-24); 24 represents midnight at the end of the day.
+    end_minute : int
+        The minute at the end of the time step (0-60); 60 is used by EnergyPlus to denote the end of an hour.
+    
+    Returns
+    -------
+    datetime.datetime
+        A corrected datetime object compatible with Python's datetime module, adjusted for EnergyPlus' use of 24:60 format.
+    """
+    """
     Convert E+ time format to format acceptable by datetime module.
 
     EnergyPlus date and time format is not compatible with
@@ -98,9 +119,38 @@ def generate_datetime_dates(raw_dates, year):
 
 
 def update_start_dates(dates):
+    """
+    Set accurate first date for monthly+ tables.
+    
+    Parameters
+    ----------
+    dates : list of str or pandas.DatetimeIndex
+        List of date strings or a DatetimeIndex representing the original dates.
+    
+    Returns
+    -------
+    list of str
+        Updated list of date strings with accurate start dates for monthly or longer frequency tables.
+    """
     """Set accurate first date for monthly+ tables."""
 
     def set_start_date(orig, refs):
+        """
+        Set the start date of a time series by updating the first timestamp to midnight.
+        
+        Parameters
+        ----------
+        orig : list of datetime
+            The original list of datetime objects to be modified.
+        refs : dict of {str: list of datetime}
+            A dictionary containing reference datetime lists; only the first value is used
+            to set the start date.
+        
+        Returns
+        -------
+        list of datetime
+            The modified original list with the first timestamp updated to have hour and minute set to zero.
+        """
         for ref in refs.values():
             orig[0] = ref[0].replace(hour=0, minute=0)
             return orig
@@ -126,6 +176,25 @@ def get_n_days_from_cumulative(cumulative_days):
 
 
 def validate_year(year, is_leap, date, day):
+    """
+    Check if the given date and day correspond to the specified year, considering leap year rules.
+    
+    Parameters
+    ----------
+    year : int
+        The year to validate.
+    is_leap : bool
+        Indicates whether the year is expected to be a leap year.
+    date : datetime.date
+        The date object containing month and day to validate.
+    day : str
+        The name of the day (e.g., 'Monday') or special design day (e.g., 'SummerDesignDay').
+    
+    Returns
+    -------
+    None
+        This function does not return any value. It raises an exception if validation fails.
+    """
     """Check if date for given and day corresponds to specified year."""
     if calendar.isleap(year) is is_leap:
         test_datetime = datetime(year, date.month, date.day)
@@ -227,7 +296,24 @@ def convert_raw_date_data(
     raw_dates,  #: Dict[str, List[EsoTimestamp]],
     days_of_week,  #: Dict[str, List[str]],
     year,  #: Optional[int],
-):  # -> Dict[str, List[datetime]]:
+):
+  """
+  Convert EnergyPlus raw date data into standard datetime format.
+  
+  Parameters
+  ----------
+  raw_dates : Dict[str, List[EsoTimestamp]]
+      Dictionary mapping time frequency strings to lists of EsoTimestamp objects.
+  days_of_week : Dict[str, List[str]]
+      Dictionary mapping time frequency strings to lists of day-of-week names.
+  year : Optional[int]
+      Year to assign to the converted dates. If None, the year is inferred based on leap year and date context.
+  
+  Returns
+  -------
+  Dict[str, List[datetime]]
+      Dictionary with the same keys as `raw_dates`, where values are lists of datetime objects corresponding to the input timestamps.
+  """  # -> Dict[str, List[datetime]]:
     """Convert EnergyPlus dates into standard datetime format."""
     lowest_frequency = get_lowest_frequency(list(raw_dates.keys()))
     if lowest_frequency in {TS, H, D}:

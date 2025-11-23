@@ -16,6 +16,21 @@ if not os.path.exists(epWorkingFolder):
 
 
 def scan(walkMethod):
+    """
+    Perform a directory scan using a specified walk method and execute run files.
+    
+    Parameters
+    ----------
+    walkMethod : callable
+        A function that performs directory traversal, compatible with os.walk, 
+        taking a directory path as its argument and returning an iterator of 
+        (dirpath, dirnames, filenames).
+    
+    Returns
+    -------
+    None
+        This function does not return any value.
+    """
     time.sleep(random.randint(0, 10) / 10)
     print('Scanning folder...')
     for dirpath, dirnames, filenames in walkMethod(NASFolder):
@@ -26,6 +41,22 @@ def scan(walkMethod):
 
 def randomWalk(root: str):
     """
+    Randomly traverse a directory tree, similar to os.walk, but with shuffled subdirectories.
+    
+    Parameters
+    ----------
+    root : str
+        The root directory path to start the random traversal from.
+    
+    Returns
+    -------
+    generator
+        A generator that yields tuples of (dirpath, dirnames, filenames), where:
+        - dirpath is a string representing the current directory path,
+        - dirnames is a list of subdirectory names in the current directory (shuffled),
+        - filenames is a list of file names in the current directory.
+    """
+    """
     same function as os.walk(), but for random walking.
     :param root:   wolk folder
     """
@@ -34,6 +65,23 @@ def randomWalk(root: str):
         yield dirpath, dirnames, filenames
 
 def timeWalk(root: str, *, reverse: bool = False):
+    """
+    Walk through a directory tree in order of directory modification time.
+    
+    Parameters
+    ----------
+    root : str
+        The root directory to walk through.
+    reverse : bool, optional
+        If False, directories are walked from oldest to newest by modification time.
+        If True, directories are walked from newest to oldest. Default is False.
+    
+    Returns
+    -------
+    generator
+        A generator that yields tuples of (dirpath, dirnames, filenames),
+        similar to os.walk(), but with subdirectories ordered by modification time.
+    """
     """
     same function as os.walk(), but walk by edit time of the folder
     :param root:   wolk folder
@@ -58,6 +106,25 @@ def timeWalk(root: str, *, reverse: bool = False):
         yield dirpath, dirnames, filenames
 
 def runFile(folder):
+    """
+    Run an EnergyPlus simulation from a specified folder.
+    
+    Parameters
+    ----------
+    folder : str
+        Path to the folder containing the runit.runit file, EPW, IDF, and version (.vrs) files.
+        The folder should contain exactly one .epw file, one .idf file, and one .vrs file
+        (without the extension) specifying the EnergyPlus version.
+    
+    Returns
+    -------
+    int
+        Status code indicating result:
+        0 if simulation completed successfully,
+        -1 if required files (EPW, IDF, version) are missing,
+        -2 if 'runit.runit' file does not exist in the folder,
+        1 if an exception occurred during execution.
+    """
     try:
         if not os.path.exists(os.path.join(folder, 'runit.runit')):
             return -2
