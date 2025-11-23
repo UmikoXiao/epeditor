@@ -139,7 +139,7 @@ def run_with_cpu(
         raise FileNotFoundError("Could not find eplus executable: {}".format(eplus_exe_path))
     # convert paths to absolute paths if required
     if os.path.isfile(args["weather"]):
-        args["weather"] = os.path.abspath(args["weather"])
+        args["weather"] = os.path.abspath(args['weather'])
     else:
         args["weather"] = os.path.join(eplus_weather_path, args["weather"])
     output_dir = os.path.abspath(args["output_directory"])
@@ -167,8 +167,10 @@ def run_with_cpu(
                 args[arg] = ""
             cmd.extend(["--{}".format(arg.replace("_", "-"))])
             if args[arg] != "":
+                if os.path.isfile(args[arg]):
+                    args[arg] = "\""+args[arg]+"\""
                 cmd.extend([args[arg]])
-    cmd.extend([idf_path])
+    cmd.extend(["\""+idf_path+"\""])
 
     # allocate CPUs to the process
 
@@ -272,7 +274,7 @@ def simulate_file(idf_path: str, epw: str, idd: str = None, overwrite=False, ver
             target_dir = idf_path[:-4] +"+"+ os.path.basename(epw)[:-4]
         else:
             target_dir = idf_path[:-4]
-        new_idf_path = os.path.join(target_dir, os.path.basename(epw)[:-4]) + '.idf'
+        new_idf_path = os.path.join(target_dir, os.path.basename(epw)) + '.idf'
         if os.path.exists(target_dir):
             if os.path.exists(new_idf_path + '.start'):
                 return ""
@@ -288,7 +290,7 @@ def simulate_file(idf_path: str, epw: str, idd: str = None, overwrite=False, ver
 
         print(f'Case Start:{idf_path}')
         shutil.copy(idf_path, new_idf_path)
-        idf = IDF(new_idf_path)
+        idf = IDF(new_idf_path,epw=epw)
         if len(idf.idfobjects['Output:SQLite']) == 0:
             sql = idf.newidfobject('Output:SQLite')
             sql.Option_Type = 'Simple'
@@ -329,6 +331,7 @@ def simulate_file(idf_path: str, epw: str, idd: str = None, overwrite=False, ver
         # if `idd` is not passed explicitly, use the IDF.iddname
         idd = kwargs.pop("idd", idf.iddname)
         epw = kwargs.pop("weather", idf.epw)
+
         try:
             run_with_cpu(idf, weather=epw, idd=idd, **theoptions)
         finally:

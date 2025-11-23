@@ -115,12 +115,17 @@ class searchWidget(redirectQWidget):
                 if filePath:
                     otherIDF = IDFModel(filePath)
                     searchResults = self.prj.model.diff(otherIDF)
+
+                    # filter the search result with the Name as field
+                    searchResults = [sr for sr in searchResults if re.search('name',sr.field,re.IGNORECASE) is None]
+
                     self._create_SearchResultLayout(searchResults)
                     editors = [IDFEditor(sr) for sr in searchResults]
                     tempCsv = os.path.join(self.prj.tempFolder, '_groupEditor.csv')
                     IDFGroupEditor(*editors).to_csv(tempCsv)
-                    self.mainWindow.groupEditorArea.readCSV(tempCsv)
-                    os.startfile(tempCsv)
+                    geBox = self.mainWindow.groupEditorArea.readCSV(tempCsv)
+                    geBox.openFile()
+                    # os.startfile(geBox.dataSheet)
         except Exception as e:
             print(traceback.format_exc())
     def _create_SearchResultLayout(self, result: list):
@@ -401,6 +406,7 @@ class groupEditorWidget(redirectQWidget):
         self.VBoxLayout.addWidget(self.emptyGroupEditor(), self.VBoxLayout.count())
         gridnode.deleteLater()
         self.arrange()
+        return self.geditorbox[-1]
 
     def emptyGroupEditor(self):
         emptyblock = QtWidgets.QLabel(parent=self)
@@ -642,9 +648,10 @@ class resultWidget(redirectQWidget):
 
     def initResultView(self):
         self.exportButton.hide()
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.resultBox = ResultBox(prj=self.prj,parent=self)
-        self.mainWindow.exportButton.clicked.connect(self.resultBox.toCsv)
         self.gridLayout.replaceWidget(self.exportButton,self.resultBox)
+        self.mainWindow.exportButton.clicked.connect(self.resultBox.toCsv)
 
 
 def clear_grid(layout: QtWidgets.QGridLayout, delete_widgets=True):

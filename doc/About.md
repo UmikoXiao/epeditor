@@ -1,5 +1,5 @@
 # Epeditor: Multiprocessing on EnergyPlus Input Files
-## Ver 0.2.3
+## Ver 0.1.0
 Author: Umiko
 Company: Tsinghua University
 Last updated: 01/20/2024 (dd/mm/yyyy), 21:18.

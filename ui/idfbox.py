@@ -509,6 +509,7 @@ class ResultBox(QtWidgets.QWidget):
                 self.calculator.Layout.addWidget(tsSelectBox)
                 self.calculator.buttonGroup.addButton(tsSelectBox, i)
                 self.calculator.selectBox.append(tsSelectBox)
+            self.calculator.selectBox[1].setChecked(True)
 
             for key in self.prj.model.variables.keys():
                 self.variables_Scroll.varBox[key] = []
@@ -525,7 +526,7 @@ class ResultBox(QtWidgets.QWidget):
             self.calculator.caseSummary = QtWidgets.QCheckBox(self.calculator)
             self.calculator.caseSummary.setText('summary cases')
             self.calculator.caseSummary.clicked.connect(self.caseSummaryChangeText)
-            self.calculator.caseSummary.click()
+            # self.calculator.caseSummary.click()
 
             # selectAll
             self.variables_Scroll.selectAll = QtWidgets.QPushButton(self.variables_Scroll)
@@ -605,9 +606,26 @@ class ResultBox(QtWidgets.QWidget):
                     _variables.append(_varBox.hint)
             case = "variables" if self.calculator.caseSummary.isChecked() else "cases"
             # print(_variables,self.calculator.buttonGroup.checkedButton().hint,self.timeStep.buttonGroup.checkedButton().hint)
+            calculator = np.array
+            if self.calculator.buttonGroup.checkedButton() is not None:
+                calculator = self.calculator.buttonGroup.checkedButton().hint
+            else:
+                for box in self.calculator.selectBox:
+                    if box.isChecked():
+                        calculator = box.hint
+                        break
+            frequency = None
+            if self.timeStep.buttonGroup.checkedButton() is not None:
+                frequency = self.timeStep.buttonGroup.checkedButton().hint
+            else:
+                for box in self.timeStep.selectBox:
+                    if box.isChecked():
+                        frequency = box.hint
+                        break
+
             result = self.prj.model.group_result(variable=_variables,
-                                        calculator=self.calculator.buttonGroup.checkedButton().hint,
-                                        frequency=self.timeStep.buttonGroup.checkedButton().hint,
+                                        calculator=calculator,
+                                        frequency=frequency,
                                         x=case)
             result.metaData['method'] = self.calculator.buttonGroup.checkedButton().text()
             return result

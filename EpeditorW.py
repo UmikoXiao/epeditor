@@ -1,22 +1,14 @@
 import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
-import os
+import sys
 
-QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
-
-
-path_to_add = os.path.abspath('.')
-sys.path.insert(0, path_to_add)
-
-import epeditor
-import ui
-from ui import main, event
 
 
 
 if __name__ == '__main__':
     #获取UIC窗口操作权限
-
+    QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
+    from ui import main, event
     MainWindow = QtWidgets.QMainWindow()
     #调自定义的界面（即刚转换的.py对象）
     app = QtWidgets.QApplication(sys.argv)

@@ -11,6 +11,7 @@ from .processor import IDFEditor, IDFGroupEditor, IDFsearchresult
 from .utils import *
 
 
+
 class IDFModel(IDF):
     '''
         方便Baseline管理的增强IDF类型，提供更方便的idfobject管理
@@ -31,6 +32,7 @@ class IDFModel(IDF):
     __slots__ = ['objectdict', 'references', 'file_name', 'idd', 'folder', 'sql', 'variables']
 
     def __init__(self, idf_file=None, epw=None, idd=None, folder=None):
+
         if folder is not None:
             for dirpath, dirnames, filenames in os.walk(folder):
                 for file in filenames:
@@ -44,6 +46,10 @@ class IDFModel(IDF):
             self.variables: dict | None = None
         if idf_file is None:
             return
+
+        # process utf-8 incompatible issues
+        remove_chinese_characters(idf_file)
+
         self.file_name = os.path.normpath(idf_file)
         self.objectdict = {}
         self.references = {}

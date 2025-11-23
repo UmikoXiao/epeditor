@@ -65,8 +65,15 @@ if not os.path.exists('venv'):
                               f'then unzip the python to {os.path.abspath("venv")}')
 
 print('Deploy python 3.7.9...')
-
-shutil.copy(r'.\setup\get-pip.py', r'.\venv\get-pip.py')
+try:
+    download(r'https://bootstrap.pypa.io/pip/3.7/get-pip.py',r'venv\get-pip.py')
+except Exception as e:
+    print('******get-pip.py failed, remove the files******')
+    if os.path.exists('venv\get-pip.py'):
+        shutil.rmtree('venv\get-pip.py')
+    raise ConnectionError('failed to get get-pip.py.\n '
+                          'please download it from https://bootstrap.pypa.io/pip/3.7/get-pip.py \n'
+                          f'then put it to {os.path.abspath("venv")}/get-pip.py')
 shutil.copy(r'.\setup\python37._pth', r'.\venv\python37._pth')
 
 with open(r'venv\setupEnv.bat', 'w+') as f:
@@ -115,14 +122,14 @@ if len(_ready) == 0:
                               f'please download your compatible version from https://energyplus.net/downloads \n'
                               )
 
-print('prepare idd files...')
-if not os.path.exists(os.path.join(epEditor, f'epeditor\idd')):
-    os.mkdir(os.path.join(epEditor, f'epeditor\idd'))
-for _dir in _ready:
-    iddFolder = os.path.join(_dir, 'PreProcess\IDFVersionUpdater')
-    iddFile = [f for f in os.listdir(iddFolder) if f.endswith('.idd')]
-    for file in iddFile:
-        shutil.copy(os.path.join(iddFolder, file), os.path.join(epEditor, f'epeditor\idd', file))
+# print('prepare idd files...')
+# if not os.path.exists(os.path.join(epEditor, f'epeditor\idd')):
+#     os.mkdir(os.path.join(epEditor, f'epeditor\idd'))
+# for _dir in _ready:
+#     iddFolder = os.path.join(_dir, 'PreProcess\IDFVersionUpdater')
+#     iddFile = [f for f in os.listdir(iddFolder) if f.endswith('.idd')]
+#     for file in iddFile:
+#         shutil.copy(os.path.join(iddFolder, file), os.path.join(epEditor, f'epeditor\idd', file))
 
 print('preparing documents...')
 if not os.path.exists(f'doc\InputOutputReference.pdf'):
@@ -131,4 +138,6 @@ if not os.path.exists(f'doc\InputOutputReference.pdf'):
 
 print('test EpeditorW...')
 os.chdir(epEditor)
-os.system('EpeditorW.bat')
+for file in os.listdir(r'setup\EpeditorW'):
+    shutil.copy(os.path.join(r'setup\EpeditorW', file), os.path.join(epEditor, file))
+os.system('run.bat')

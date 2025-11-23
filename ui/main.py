@@ -238,7 +238,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "EpeditorW 0.1.0"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "EpeditorW 0.2.6"))
 
         self.exec.setText(_translate("MainWindow", "MoosasQA"))
         self.exec_lable.setText(_translate("MainWindow", "Clean"))

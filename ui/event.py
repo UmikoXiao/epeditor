@@ -189,9 +189,18 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
             QtCore.QRect(0, 0, 800, 400))
         self.groupEditorArea.setObjectName("groupEditorArea")
         self.groupEditorArea_Scroll.setWidget(self.groupEditorArea)
+        self.importButton = QtWidgets.QPushButton(self.analysisArea)
+        self.importButton.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
+                                        QtWidgets.QSizePolicy.Expanding)
+        self.importButton.setStyleSheet(suggestionBoxStyleSheet)
+        self.importButton.setFont(QtGui.QFont('Arial', 30))
+        self.importButton.clicked.connect(self.action_import_idf)
+        self.importButton.setText('Import a baseline *.idf...')
+        self.importButton.hide()
 
         # ProcessingArea-ResultAnalysis
         self.resultAnalysisArea = resultWidget(parent=self.analysisArea, prj=self.prj, window=self)
+        self.resultAnalysisArea.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.resultAnalysisArea.setGeometry(
             QtCore.QRect(0, 0, self.groupEditorArea_Scroll.width(), self.groupEditorArea_Scroll.height()))
         self.resultAnalysisArea.setObjectName("resultAnalysisArea")
@@ -228,23 +237,15 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
             app.setStyleSheet(qss1)
 
         if self.prj.model is None:
-            self.importHint = {}
-            self.importHint['analysisArea'] = QtWidgets.QPushButton(self.analysisArea)
-            self.importHint['analysisArea'].setSizePolicy(QtWidgets.QSizePolicy.Expanding,
-                                                          QtWidgets.QSizePolicy.Expanding)
-            self.importHint['analysisArea'].setStyleSheet(suggestionBoxStyleSheet)
-            self.importHint['analysisArea'].setFont(QtGui.QFont('Arial', 30))
-            self.importHint['analysisArea'].clicked.connect(self.action_import_idf)
-            self.importHint['analysisArea'].setText('Import a baseline *.idf...')
-
-            self.analysisArea.Layout.replaceWidget(self.groupEditorArea_Scroll, self.importHint['analysisArea'])
+            self.importButton.show()
+            self.analysisArea.Layout.replaceWidget(self.groupEditorArea_Scroll, self.importButton)
             self.groupEditorArea_Scroll.hide()
             print('Please import a baseline *.idf...')
         else:
             self.groupEditorArea_Scroll.show()
-            self.importHint['analysisArea'].hide()
+            self.importButton.hide()
             self.groupEditorArea_Scroll.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-            self.analysisArea.Layout.replaceWidget(self.importHint['analysisArea'], self.groupEditorArea_Scroll)
+            self.analysisArea.Layout.replaceWidget(self.importButton, self.groupEditorArea_Scroll)
 
     def updatetext(self, text):
         """更新textBrowser"""
@@ -259,6 +260,7 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
     def action_write(self):
         try:
             geditor, fileNames = self.groupEditorArea.crossAllGroupEditors()
+            QtWidgets.QMessageBox.information(self,"Select the saving path","请选择一个文件夹，idf文件将会批量写入该文件夹\nSelect a folder to drop the idf files!")
             filePath = QtWidgets.QFileDialog.getExistingDirectory(self, "Select the saving path",get_dir('simulation'))
             if filePath:
                 write_dir('simulation', filePath)
@@ -275,6 +277,8 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
                 print('******Select a weather file******')
             else:
                 print('******baseline haven\'t imported, select a folder******')
+                QtWidgets.QMessageBox.information(self, "Select the idf folder",
+                                                  "基线模型没有导入，请直接选择一个要模拟的文件夹（所有IDF都在里面）\nBaseline has not imported. Select a folder where the idf files are located, for simulation.")
                 filePath = QtWidgets.QFileDialog.getExistingDirectory(self, "Select the project path", get_dir('simulation'))
                 if filePath:
                     write_dir('simulation', filePath)
@@ -290,8 +294,10 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
     def action_continueSimulation(self):
         try:
             if not self.prj.model:
-                self.prj.model = IDFModel(r'\doc\sample.idf')
+                self.prj.model = IDFModel(os.path.abspath(r'doc\Base-Office.idf'))
             if not self.prj.model.folder:
+                QtWidgets.QMessageBox.information(self, "Select the idf folder",
+                                                  "基线模型没有导入，请直接选择一个要模拟的文件夹（所有IDF都在里面）\nBaseline has not imported. Select a folder where the idf files are located, for simulation.")
                 filePath = QtWidgets.QFileDialog.getExistingDirectory(self, "Select the project path", get_dir('simulation'))
                 if filePath:
                     write_dir('simulation', filePath)
@@ -302,6 +308,8 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
             traceback.print_exc()
 
     def simulation(self):
+        QtWidgets.QMessageBox.information(self, "Select the weather",
+                                          "选择一个EPW气象文件用于模拟\nSelect the EnergyPlus Weather file for simulation.")
         filePath, filetype = QtWidgets.QFileDialog.getOpenFileName(self, "Select the EnergyPlus Weather Files",
                                                                    get_dir('weather'),
                                                                    'EnergyPlus Weather Files (*.epw)')
@@ -312,10 +320,18 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
             dlg = MultiInputDialog(self)
             if dlg.exec_() == QtWidgets.QDialog.Accepted:
                 val = dlg.values()
+                QtWidgets.QMessageBox.information(self, "warning",
+                                                  "模拟即将开始，相关信息在CMD打印\nSimulation is ready, please turn to CMD....")
                 self.prj.model.simulation(epw=filePath, overwrite=False, stdout=self.stdout,
                                           local=val['core'], process_count=val['cpus'], forceCPU=val['forceCPU'])
                 print('******Simulation begin, turn to CMD....******')
-                self.resultAnalysisArea.initResultView()
+                self.prj.model.read_folder(self.prj.model.folder)
+                self.clickStage3()
+                try:
+                    self.exportButton.clicked.disconnect()
+                except Exception as e:
+                    pass
+                self.exportButton.clicked.connect(self.resultAnalysisArea.resultBox.toCsv)
                 print('******ALL DONE******')
 
     def action_idfreference(self):
@@ -330,6 +346,8 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
 
     def action_Result_Folder(self):
         try:
+            if not self.prj.model:
+                self.prj.model = IDFModel(os.path.abspath(r'doc\Base-Office.idf'))
             filePath = QtWidgets.QFileDialog.getExistingDirectory(self, "Select the result folder", get_dir('simulation'))
             if filePath:
                 self.prj.model.read_folder(filePath)
@@ -516,9 +534,13 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
         self.exportButton.clicked.connect(self.groupEditorArea.editorFromCSV)
         self.resultAnalysisArea.hide()
         self.groupEditorArea_Scroll.show()
+
         self.groupEditorArea.show()
         self.analysisArea.Layout.replaceWidget(self.resultAnalysisArea, self.groupEditorArea_Scroll)
-
+        if self.prj.model is None:
+            self.importButton.show()
+            self.analysisArea.Layout.replaceWidget(self.groupEditorArea_Scroll, self.importButton)
+            self.groupEditorArea_Scroll.hide()
     def clickStage3(self):
         self.ResultAnalysis.setStyleSheet(QTitleButton.selectStyleSheet)
         self.PutthemintoGroup.setStyleSheet(QTitleButton.unselectStyleSheet)
@@ -528,10 +550,13 @@ class Window(Ui_MainWindow, QtWidgets.QMainWindow):
         except Exception as e:
             pass
         self.groupEditorArea.hide()
+        self.importButton.hide()
         self.groupEditorArea_Scroll.hide()
         self.resultAnalysisArea.show()
-        self.analysisArea.Layout.replaceWidget(self.groupEditorArea_Scroll, self.resultAnalysisArea)
+        self.resultAnalysisArea.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.analysisArea.Layout.replaceWidget(self.importButton, self.resultAnalysisArea)
         if self.prj.model:
+            self.analysisArea.Layout.replaceWidget(self.groupEditorArea_Scroll, self.resultAnalysisArea)
             if self.prj.model.folder:
                 self.resultAnalysisArea.initResultView()
                 self.exportButton.clicked.connect(self.resultAnalysisArea.resultBox.toCsv)
