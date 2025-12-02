@@ -24,6 +24,11 @@ if you do not have a python in your computer (really???) you can download here:
 python setup.py
 ```
 
+### Sever Side
+the repository of sever side is not avaliable via docker.  
+Please refer to [Epeditor Sever](https://github.com/UmikoXiao/Epeditor_server)
+
+
 ---
 
 ## 👀 Any Instruction
