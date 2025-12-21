@@ -17,7 +17,7 @@ from multiprocessing.pool import Pool
 from typing import List, Optional, Dict, Union, Any
 from subprocess import Popen
 import win32process
-from utils import *
+from .utils import *
 
 
 def run_with_cpu(
