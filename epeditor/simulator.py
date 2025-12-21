@@ -1,795 +1,759 @@
-import sys
 import time
-
-from typing import List
-
-import queue
-from eppy.modeleditor import IDF
-import os, shutil, re
-import numpy as np
-from multiprocessing.pool import Pool
-from .utils import *
-from eppy.runner.run_functions import install_paths, parse_error, CalledProcessError, check_call, StringIO
+import os
+import re
 import sys
+import numpy as np
+import shutil
 import tempfile
+from eppy.modeleditor import IDF
+from eppy.runner.run_functions import (
+    install_paths,
+    parse_error,
+    CalledProcessError,
+    check_call,
+    StringIO
+)
+from multiprocessing.pool import Pool
+from typing import List, Optional, Dict, Union, Any
+from subprocess import Popen
+import win32process
+from utils import *
+
+
 def run_with_cpu(
-        idf=None,
-        weather=None,
-        output_directory="",
-        annual=False,
-        design_day=False,
-        idd=None,
-        epmacro=False,
-        expandobjects=False,
-        readvars=False,
-        output_prefix=None,
-        output_suffix=None,
-        version=False,
-        verbose="v",
-        ep_version=None,
-        cpu_index=None
-):
+        idf: Union[str, IDF],
+        weather: str,
+        output_directory: str = "",
+        annual: bool = False,
+        design_day: bool = False,
+        idd: Optional[str] = None,
+        epmacro: bool = False,
+        expandobjects: bool = False,
+        readvars: bool = False,
+        output_prefix: Optional[str] = None,
+        output_suffix: Optional[str] = None,
+        version: bool = False,
+        verbose: str = "v",
+        ep_version: Optional[str] = None,
+        cpu_index: Optional[int] = None
+) -> str:
     """
-    Wrapper around the EnergyPlus command line interface.
+    Function for single task simulation
+    Wrapper around the EnergyPlus command line interface with CPU affinity support.
+    This is a more robust method from eppy.runner.run_functions.
+
 
     Parameters
     ----------
-    idf : str
-        Full or relative path to the IDF file to be run, or an IDF object.
-
+    idf : Union[str, IDF]
+        Full/relative path to the IDF file, or an IDF object.
     weather : str
-        Full or relative path to the weather file.
-
+        Full/relative path to the weather file.
     output_directory : str, optional
-        Full or relative path to an output directory (default: 'run_outputs)
-
+        Full/relative path to the output directory (default: "").
     annual : bool, optional
-        If True then force annual simulation (default: False)
-
+        Force annual simulation (default: False).
     design_day : bool, optional
-        Force design-day-only simulation (default: False)
-
-    idd : str, optional
-        Input data dictionary (default: Energy+.idd in EnergyPlus directory)
-
-    epmacro : str, optional
+        Force design-day-only simulation (default: False).
+    idd : Optional[str], optional
+        Path to Input Data Dictionary file (default: Energy+.idd in EnergyPlus directory).
+    epmacro : bool, optional
         Run EPMacro prior to simulation (default: False).
-
     expandobjects : bool, optional
-        Run ExpandObjects prior to simulation (default: False)
-
+        Run ExpandObjects prior to simulation (default: False).
     readvars : bool, optional
-        Run ReadVarsESO after simulation (default: False)
-
-    output_prefix : str, optional
-        Prefix for output file names (default: eplus)
-
-    output_suffix : str, optional
-        Suffix style for output file names (default: L)
+        Run ReadVarsESO after simulation (default: False).
+    output_prefix : Optional[str], optional
+        Prefix for output file names (default: None, uses "eplus").
+    output_suffix : Optional[str], optional
+        Suffix style for output files (default: None, uses "L"):
             L: Legacy (e.g., eplustbl.csv)
             C: Capital (e.g., eplusTable.csv)
             D: Dash (e.g., eplus-table.csv)
-
     version : bool, optional
-        Display version information (default: False)
-
-    verbose: str
-        Set verbosity of runtime messages (default: v)
+        Display EnergyPlus version information (default: False).
+    verbose : str, optional
+        Verbosity level of runtime messages (default: "v"):
             v: verbose
             q: quiet
             s: silent
-
-    ep_version: str
-        EnergyPlus version, used to find install directory. Required if run() is
-        called with an IDF file path rather than an IDF object.
-
-    cpu_index: int
-        Index of CPU cores to use (default: None)
+    ep_version : Optional[str], optional
+        EnergyPlus version for locating install directory. Required if passing IDF file path.
+    cpu_index : Optional[int], optional
+        Index of CPU core to allocate (default: None, uses all cores).
 
     Returns
     -------
-    str : status
+    str
+        Status message ("OK" if successful).
 
     Raises
     ------
     CalledProcessError
-
+        If EnergyPlus execution fails.
     AttributeError
-        If no ep_version parameter is passed when calling with an IDF file path
-        rather than an IDF object.
-
-
+        If ep_version is not provided when passing an IDF file path.
+    RuntimeError
+        If IDF file is not found or execution error occurs.
+    FileNotFoundError
+        If EnergyPlus executable is not found.
     """
     args = locals().copy()
-    # get unneeded params out of args ready to pass the rest to energyplus.exe
     verbose = args.pop("verbose").lower()
     idf = args.pop("idf")
     iddname = args.get("idd")
+
     if not isinstance(iddname, str):
         args.pop("idd")
+
+    # Resolve IDF path
     try:
         idf_path = os.path.abspath(idf.idfname)
     except AttributeError:
         idf_path = os.path.abspath(idf)
+
     if not os.path.isfile(idf_path):
-        raise RuntimeError(
-            "ERROR: Could not find input data file: {}".format(idf_path)
-        )
+        raise RuntimeError(f"ERROR: Could not find input data file: {idf_path}")
+
+    # Auto-enable expandobjects if HVACTEMPLATE exists
     if not expandobjects:
         with open(idf_path, "r") as f:
             args["expandobjects"] = "HVACTEMPLATE:" in f.read().upper()
+
     ep_version = args.pop("ep_version")
-    # get version from IDF object or by parsing the IDF file for it
+
+    # Get EnergyPlus version from IDF or raise error
     if not ep_version:
         try:
             ep_version = "-".join(str(x) for x in idf.idd_version[:3])
         except AttributeError:
             raise AttributeError(
-                "The ep_version must be set when passing an IDF path. \
-                Alternatively, use IDF.run()"
+                "The ep_version must be set when passing an IDF path. "
+                "Alternatively, use IDF.run()"
             )
 
+    # Get EnergyPlus executable and weather directory paths
     eplus_exe_path, eplus_weather_path = install_paths(ep_version, iddname)
+
     if version:
-        # just get EnergyPlus version number and return
         cmd = [eplus_exe_path, "--version"]
         check_call(cmd)
-        return
+        return "OK"
+
     if not os.path.exists(eplus_exe_path):
-        raise FileNotFoundError("Could not find eplus executable: {}".format(eplus_exe_path))
-    # convert paths to absolute paths if required
+        raise FileNotFoundError(f"Could not find eplus executable: {eplus_exe_path}")
+
+    # Resolve weather file path
     if os.path.isfile(args["weather"]):
-        args["weather"] = os.path.abspath(args['weather'])
+        args["weather"] = os.path.abspath(args["weather"])
     else:
         args["weather"] = os.path.join(eplus_weather_path, args["weather"])
-    output_dir = os.path.abspath(args["output_directory"])
-    args["output_directory"] = output_dir
+
+    # Resolve output directory and IDD path
+    args["output_directory"] = os.path.abspath(args["output_directory"])
     if iddname is not None:
         args["idd"] = os.path.abspath(iddname)
 
-    # store the directory we start in
+    # Prepare runtime environment
     cwd = os.getcwd()
     run_dir = os.path.abspath(tempfile.mkdtemp())
     os.chdir(run_dir)
 
-    # store the output prefix, as it influences the error file name
-    output_prefix = args.get("output_prefix")
-
-    # build a list of command line arguments
+    # Build command line arguments
     cmd = [eplus_exe_path]
     args.pop("cpu_index")
-    # if cpu_index:
-    #     cmd = [f'start /affinity {} {eplus_exe_path}']
 
     for arg in args:
         if args[arg]:
             if isinstance(args[arg], bool):
                 args[arg] = ""
-            cmd.extend(["--{}".format(arg.replace("_", "-"))])
+            cmd.extend([f"--{arg.replace('_', '-')}"])
             if args[arg] != "":
                 if os.path.isfile(args[arg]):
-                    args[arg] = "\""+args[arg]+"\""
+                    args[arg] = f'"{args[arg]}"'
                 cmd.extend([args[arg]])
-    cmd.extend(["\""+idf_path+"\""])
 
-    # allocate CPUs to the process
+    cmd.extend([f'"{idf_path}"'])
 
-    # send stdout to tmp filehandle to avoid issue #245
+    # Redirect stderr for error parsing
     tmp_err = StringIO()
     old_err = sys.stderr
     sys.stderr = tmp_err
+
     try:
-        # print(" ".join(cmd))
-        import win32process
-        from subprocess import Popen
+        # Execute EnergyPlus with appropriate verbosity
         if verbose == "v":
-            print("\r\n" + " ".join(cmd) + "\r\n")
+            print(f"\r\n{' '.join(cmd)}\r\n")
             proc = Popen(" ".join(cmd))
         elif verbose == "q":
             proc = Popen(" ".join(cmd), stdout=open(os.devnull, "w"))
         elif verbose == "s":
             with open(os.devnull, "w") as null:
-                # Null can be written to, so this is not expected to affect issue #245.
                 proc = Popen(" ".join(cmd), stdout=null, stderr=null)
-        if cpu_index:
+        else:
+            raise ValueError(f"Unknown verbose mode: {verbose}")
+
+        # Set CPU affinity if specified
+        if cpu_index is not None:
             mask = 1 << cpu_index
             print(f'allocate to {mask}:{cpu_index}->{idf_path}')
             win32process.SetProcessAffinityMask(proc._handle, mask)
-        # 3) 阻塞等待结束
+
+        # Wait for process completion
         proc.wait()
         return "OK"
-        # if verbose == "v":
-        #     print("\r\n" + " ".join(cmd) + "\r\n")
-        #     check_call(cmd)
-        # elif verbose == "q":
-        #     check_call(cmd, stdout=open(os.devnull, "w"))
-        # elif verbose == "s":
-        #     with open(os.devnull, "w") as null:
-        #         # Null can be written to, so this is not expected to affect issue #245.
-        #         check_call(cmd, stdout=null, stderr=null)
-        # else:
-        #     raise ValueError("Unknown verbose mode: {}".format(verbose))
+
     except CalledProcessError:
+        # Parse and raise execution error
         if output_prefix:
-            err_file = os.path.join(output_dir, output_prefix + ".err")
+            err_file = os.path.join(args["output_directory"], f"{output_prefix}.err")
         else:
-            err_file = os.path.join(output_dir, "eplusout.err")
+            err_file = os.path.join(args["output_directory"], "eplusout.err")
         message = parse_error(tmp_err, err_file)
         raise RuntimeError(message)
+
     finally:
+        # Restore original environment
         sys.stderr = old_err
         os.chdir(cwd)
-    return "OK"
 
 
-def occupy(idf_path):
+def occupy(idf_path: str) -> bool:
     """
-    Check if a file lock can be acquired by creating a 'start' file.
-    
+    Check if IDF simulation is already in progress using a lock file.
+
     Parameters
     ----------
     idf_path : str
-        The path to the directory where the 'start' file will be created or checked.
-    
+        Path to the IDF file.
+
     Returns
     -------
     bool
-        True if the 'start' file already exists (indicating the resource is occupied),
-        False otherwise (indicating the lock was successfully acquired).
+        True if simulation is in progress (lock file exists), False otherwise.
     """
-    if os.path.exists(idf_path + 'start'):
+    lock_file = f"{idf_path}start"
+    if os.path.exists(lock_file):
         return True
-    with open(idf_path + 'start', "w") as f:
+    with open(lock_file, "w") as f:
         f.write("1")
     return False
 
 
-def make_eplaunch_options(idf, **kwargs):
-    """Make options for run, so that it runs like EPLaunch on Windows"""
+def make_eplaunch_options(idf: IDF, **kwargs: Any) -> Dict[str, Any]:
+    """
+    Create simulation options matching EPLaunch behavior on Windows.
+
+    Parameters
+    ----------
+    idf : IDF
+        IDF object for simulation.
+    **kwargs : Any
+        Additional options to override default values.
+
+    Returns
+    -------
+    Dict[str, Any]
+        Dictionary of simulation options.
+    """
+    # Parse IDF version
     idfversion = idf.idfobjects['version'][0].Version_Identifier.split('.')
     idfversion.extend([0] * (3 - len(idfversion)))
-    idfversionstr = '-'.join([str(item) for item in idfversion])
-    fname = idf.idfname
-    options = {
-        # 'ep_version':idfversionstr, # runIDFs needs the version number
-        # idf.run does not need the above arg
-        # you can leave it there and it will be fine :-)
 
-        'output_prefix': os.path.basename(fname).split('.')[0],
+    # Default EPLaunch-compatible options
+    options = {
+        'output_prefix': os.path.basename(idf.idfname).split('.')[0],
         'output_suffix': 'C',
-        'output_directory': os.path.dirname(fname),
+        'output_directory': os.path.dirname(idf.idfname),
         'readvars': True,
-        'expandobjects': True,
-        #'verbose': 'v'  # allow all stdout
-        #'verbose':'q' # ban the stdout but allow stderr
-        #'verbose':'s'  # ban both the stdout and stderr
+        'expandobjects': True
     }
-    for key in kwargs.keys():
-        options[key] = kwargs[key]
+
+    # Override with user-provided kwargs
+    options.update(kwargs)
     return options
 
 
-def error_callback(error):
+def error_callback(error: Exception) -> None:
     """
-    Prints an error message with a formatted prefix.
-    
+    Callback function for handling multiprocessing errors.
+
     Parameters
     ----------
-    error : Any
-        The error object or message to be printed. Can be of any type that supports string representation.
-    
-    Returns
-    -------
-    None
-        This function does not return any value.
+    error : Exception
+        Exception raised by the multiprocessing task.
     """
     print(f'****Process Error: {error}')
 
 
-def return_callback(msg):
+def return_callback(msg: str) -> None:
     """
-    Prints the provided message to the console.
-    
+    Callback function for handling successful multiprocessing task results.
+
     Parameters
     ----------
     msg : str
-        The message to be printed.
-    
-    Returns
-    -------
-    None
+        Result message from the multiprocessing task.
     """
     print(msg)
 
 
-def simulate_file(idf_path: str, epw: str, idd: str = None, overwrite=False, verbose='q', cpu_index=None,long_dir=False, **kwargs):
+def simulate_file(
+        idf_path: str,
+        epw: str,
+        idd: Optional[str] = None,
+        overwrite: bool = False,
+        verbose: str = 'q',
+        cpu_index: Optional[int] = None,
+        long_dir: bool = False,
+        **kwargs: Any
+) -> str:
     """
-    Simulate an EnergyPlus model using specified input files and configuration.
-    
+    Simulate a single IDF file with specified weather file and options.
+    allow stick a simualtion process to defined CPU.
+    A packup function to the run_with_cpu for better parallelization.
+
     Parameters
     ----------
     idf_path : str
-        Path to the IDF (Input Data File) file for the simulation.
+        Path to the IDF file.
     epw : str
-        Path to the EPW (EnergyPlus Weather) file.
-    idd : str, optional
-        Path to the IDD (Input Data Dictionary) file. If not provided, uses default IDD.
-    overwrite : bool, default False
-        If True, overwrites existing output files; otherwise, preserves them.
-    verbose : str, default 'q'
-        Verbosity level for EnergyPlus output ('q' for quiet, 'v' for verbose).
-    cpu_index : int, optional
-        Index of the CPU core to use for the simulation. If None, uses default behavior.
-    long_dir : bool, default False
-        If True, uses a long directory name for output files; otherwise, uses short name.
-    **kwargs : dict
-        Additional keyword arguments passed to the EnergyPlus simulation environment.
-    
+        Path to the weather (EPW) file.
+    idd : Optional[str], optional
+        Path to the IDD file (default: None, auto-detected).
+    overwrite : bool, optional
+        Overwrite existing results if True (default: False).
+    verbose : str, optional
+        Verbosity level (default: 'q'):
+            v: verbose
+            q: quiet
+            s: silent
+    cpu_index : Optional[int], optional
+        CPU core index to allocate (default: None).
+    long_dir : bool, optional
+        Use extended directory name (IDF + EPW name) if True (default: False).
+    **kwargs : Any
+        Additional options passed to run_with_cpu.
+
     Returns
     -------
-    bool
-        True if simulation completes successfully, False otherwise.
+    str
+        Status message indicating simulation result.
     """
-    def _processing(idf_path: str, epw: str, idd: str = None, overwrite=False,long_dir=False, **kwargs):
-        """
-        Perform preprocessing for EnergyPlus simulation.
-        
-        Parameters
-        ----------
-        idf_path : str
-            Path to the IDF file.
-        epw : str
-            Path to the EPW weather file.
-        idd : str, optional
-            Path to the IDD file. If not provided, it will be automatically determined from the IDF path.
-        overwrite : bool, default False
-            If True, overwrite the existing output directory.
-        long_dir : bool, default False
-            If True, create a longer directory name combining the IDF and EPW base names.
-        **kwargs : dict
-            Additional keyword arguments passed to `make_eplaunch_options`.
-        
-        Returns
-        -------
-        str
-            Status message indicating result existence, skip information, or installation issues.
-        """
+
+    def _processing(
+            idf_path: str,
+            epw: str,
+            idd: Optional[str] = None,
+            overwrite: bool = False,
+            long_dir: bool = False,
+            **kwargs: Any
+    ) -> str:
+        # Check EnergyPlus installation
         if not check_installation(idf_path):
             return f'Energyplus Ver.{get_version(idf_path)} is not yet installed.'
+
+        # Auto-detect IDD if not provided
         if idd is None:
             idd = get_idd(idf_path)
         IDF.setiddname(idd)
+
+        # Create output directory
         if long_dir:
-            target_dir = idf_path[:-4] +"+"+ os.path.basename(epw)[:-4]
+            target_dir = f"{idf_path[:-4]}+{os.path.basename(epw)[:-4]}"
         else:
             target_dir = idf_path[:-4]
-        new_idf_path = os.path.join(target_dir, os.path.basename(epw)) + '.idf'
-        if os.path.exists(target_dir):
-            if os.path.exists(new_idf_path + '.start'):
-                return ""
 
+        new_idf_path = os.path.join(target_dir, f"{os.path.basename(epw)}.idf")
+
+        # Handle existing results
+        if os.path.exists(target_dir):
+            if os.path.exists(f"{new_idf_path}.start"):
+                return ""
             if overwrite:
                 shutil.rmtree(target_dir)
                 os.mkdir(target_dir)
-
-            elif os.path.exists(new_idf_path[:-4] + '.sql'):
+            elif os.path.exists(f"{new_idf_path[:-4]}.sql"):
                 return f'**********Result Already Exist. Skip:{new_idf_path}'
         else:
             os.mkdir(target_dir)
 
         print(f'Case Start:{idf_path}')
         shutil.copy(idf_path, new_idf_path)
-        idf = IDF(new_idf_path,epw=epw)
+
+        # Load IDF and add SQLite output if missing
+        idf = IDF(new_idf_path, epw=epw)
         if len(idf.idfobjects['Output:SQLite']) == 0:
             sql = idf.newidfobject('Output:SQLite')
             sql.Option_Type = 'Simple'
             idf.save()
             print(f'add SQL to:{new_idf_path}')
-        theoptions = make_eplaunch_options(idf, **kwargs)
 
-        if cpu_index:
+        # Prepare simulation options
+        theoptions = make_eplaunch_options(idf, **kwargs)
+        if cpu_index is not None:
             theoptions['cpu_index'] = cpu_index
-        """
-        edited from eppy.modeleditor and add the function to allocate cpu.
-        """
-        #
-        # def _makerandomword(length=6):
-        """Generate a random word of specified length using UUID.
-        
-        Parameters
-        ----------
-        length : int, optional
-            The length of the random word to generate. Default is 6.
-        
-        Returns
-        -------
-        str
-            A random hexadecimal string of the specified length.
-        """
-        #     import uuid
-        #
-        #     fullword = uuid.uuid4().hex
-        #     return fullword[:length]
-        #
-        # def _maketempname(idfname, randlength=6):
-        """
-        Generate a temporary filename based on the input IDF file name and a random suffix.
-        
-        Parameters
-        ----------
-        idfname : str
-            The original IDF file name. If it ends with '.idf', the temporary name will be derived from the base name.
-        randlength : int, optional
-            Length of the random alphanumeric suffix to append (default is 6).
-        
-        Returns
-        -------
-        str
-            The generated temporary filename with a random suffix and '.idf' extension,
-            prefixed by the base name if the original name ends in '.idf'.
-        """
-        #     idfname = str(idfname)
-        #     t_suffix = _makerandomword(randlength)
-        #     randomname = f"{t_suffix}.idf"
-        #     if str(idfname[-4:]) == ".idf":
-        #         temp_name = f"{idfname[:-4]}_{randomname}"
-        #     else:
-        #         temp_name = randomname
-        #     return temp_name
-        #
-        # # write the IDF to the current directory
-        #
-        # idfname = idf.idfname
-        # idfabsname = idf.idfabsname
-        #
-        # temp_name = _maketempname(idfname)
-        # idf.saveas(temp_name)
-        # print(idfname,temp_name)
-        # if `idd` is not passed explicitly, use the IDF.iddname
+
+        # Extract additional kwargs
         idd = kwargs.pop("idd", idf.iddname)
         epw = kwargs.pop("weather", idf.epw)
 
+        # Run simulation
         try:
             run_with_cpu(idf, weather=epw, idd=idd, **theoptions)
         finally:
-            # idf.idfname = idfname
-            # idf.idfabsname = idfabsname
-            # os.remove(temp_name)
             pass
-        # idf.run(**theoptions)
+
         return f'Case Done:{new_idf_path}'
 
+    # Set verbosity and execute
     kwargs['verbose'] = verbose
     if os.path.isfile(idf_path) and os.path.exists(idf_path):
         if verbose == 's':
             with hiddenPrint() as log:
-                new_idf_path = _processing(idf_path, epw, idd, overwrite,long_dir, **kwargs)
-                log.dump(new_idf_path[:-4] + '.log')
-                msg = ''
+                result = _processing(idf_path, epw, idd, overwrite, long_dir, **kwargs)
+                log.dump(f"{new_idf_path[:-4]}.log")
+                return ""
         else:
-            msg = _processing(idf_path, epw, idd, overwrite,long_dir, **kwargs)
-        return msg
+            return _processing(idf_path, epw, idd, overwrite, long_dir, **kwargs)
     else:
         return f'IDF not found: {idf_path}'
 
 
-def simulate_sequence(idfs: list, epw: str, idd: str = None, overwrite=False, verbose='q', cpu_index=None,long_dir=False, **kwargs):
+def simulate_sequence(
+        idfs: List[Union[str, IDF]],
+        epw: str,
+        idd: Optional[str] = None,
+        overwrite: bool = False,
+        verbose: str = 'q',
+        cpu_index: Optional[int] = None,
+        long_dir: bool = False,
+        **kwargs: Any
+) -> None:
     """
-    Simulate a sequence of EnergyPlus IDF files using specified weather and directory settings.
-    
+    Simulate a sequence of IDF files sequentially on a specific CPU core.
+
     Parameters
     ----------
-    idfs : list
-        List of file paths to IDF files or IDF objects to be simulated.
+    idfs : List[Union[str, IDF]]
+        List of IDF file paths or IDF objects.
     epw : str
-        Path to the EPW weather file used for the simulation.
-    idd : str, optional
-        Path to the IDD file. If not provided, the default IDD is used.
-    overwrite : bool, default False
-        If True, overwrites existing output files; otherwise, skips simulation if outputs exist.
-    verbose : str, default 'q'
-        Verbosity level for EnergyPlus simulation output ('q' for quiet, 'v' for verbose, etc.).
-    cpu_index : int, optional
-        Identifier for the CPU/process running the simulation, used in logging.
-    long_dir : bool, default False
-        If True, uses long directory names for output; otherwise, uses short names.
-    **kwargs : dict
-        Additional keyword arguments passed to the simulate_file function.
-    
-    Returns
-    -------
-    None
-        This function does not return any value. It runs simulations and prints timing information.
+        Path to the weather (EPW) file.
+    idd : Optional[str], optional
+        Path to the IDD file (default: None).
+    overwrite : bool, optional
+        Overwrite existing results if True (default: False).
+    verbose : str, optional
+        Verbosity level (default: 'q').
+    cpu_index : Optional[int], optional
+        CPU core index to allocate (default: None).
+    long_dir : bool, optional
+        Use extended directory name if True (default: False).
+    **kwargs : Any
+        Additional options passed to simulate_file.
     """
-    import time
     t1 = time.time()
-    for idf_path in idfs:
-        if os.path.isfile(idf_path):
-            if occupy(idf_path): continue
-            simulate_file(idf_path, epw, idd, overwrite, verbose, cpu_index,long_dir, **kwargs)
-        elif isinstance(idf_path, IDF):
-            simulate_file(idf_path.idfabsname, epw, idd, overwrite, verbose, cpu_index,long_dir, **kwargs)
+    for idf_item in idfs:
+        if isinstance(idf_item, str):
+            if os.path.isfile(idf_item):
+                if occupy(idf_item):
+                    continue
+                simulate_file(idf_item, epw, idd, overwrite, verbose, cpu_index, long_dir, **kwargs)
+        elif isinstance(idf_item, IDF):
+            simulate_file(idf_item.idfabsname, epw, idd, overwrite, verbose, cpu_index, long_dir, **kwargs)
+
     print(f'**********Sequence on CPU:{cpu_index} Done**********')
     print("duration:", time.time() - t1)
 
 
-def simulate_local(idf_path: str, epw: str, idd: str = None, overwrite=False, stdout=sys.stdout, verbose='q',
-                   prs_count=7, forceCPU=False, **kwargs):
+def simulate_local(
+        idf_path: Union[str, IDF],
+        epw: Union[str, List[str]],
+        idd: Optional[str] = None,
+        overwrite: bool = False,
+        stdout: Any = sys.stdout,
+        verbose: str = 'q',
+        prs_count: int = 7,
+        forceCPU: bool = False,
+        **kwargs: Any
+) -> int:
     """
-    Simulate EnergyPlus models locally from IDF and EPW files, either single or multiple runs.
-    
+    Simulate IDF files locally with multiprocessing support.
+
     Parameters
     ----------
-    idf_path : str
-        Path to the IDF file or directory containing multiple IDF files.
-    epw : str or list of str
-        Path(s) to the EPW weather file(s). Can be a single file path or a list of paths.
-    idd : str, optional
-        Path to the IDD file. If not provided, uses default IDD.
+    idf_path : Union[str, IDF]
+        Path to single IDF file, IDF object, or directory of IDF files.
+    epw : Union[str, List[str]]
+        Path to single EPW file or list of EPW files.
+    idd : Optional[str], optional
+        Path to the IDD file (default: None).
     overwrite : bool, optional
-        If True, overwrites existing output files. Default is False.
-    stdout : file-like object, optional
-        Standard output stream. Default is sys.stdout.
+        Overwrite existing results if True (default: False).
+    stdout : Any, optional
+        Standard output stream (default: sys.stdout).
     verbose : str, optional
-        Verbosity level for EnergyPlus simulation ('q' for quiet, 'v' for verbose). Default is 'q'.
+        Verbosity level (default: 'q').
     prs_count : int, optional
-        Number of parallel processes to use when simulating multiple files. Default is 7.
+        Number of processes to use (default: 7).
     forceCPU : bool, optional
-        If True, forces distribution of work across CPUs even if the number of processes is high. Default is False.
-    **kwargs
-        Additional keyword arguments passed to underlying simulation functions.
-    
+        Force CPU core allocation if True (default: False).
+    **kwargs : Any
+        Additional options passed to simulate_file.
+
     Returns
     -------
     int
-        Returns 1 upon successful completion of all simulations.
+        1 if simulation completes successfully.
     """
     sys.stdout = stdout
+
+    # Resolve IDF path if it's an IDF object
     if isinstance(idf_path, IDF):
         idf_path = idf_path.idfabsname
+
+    # Handle single IDF file
     if os.path.isfile(idf_path):
-        if isinstance(epw,list):
+        if isinstance(epw, list):
             for epwi in epw:
-                return simulate_file(idf_path, epwi, idd, overwrite, verbose,long_dir=True)
+                return simulate_file(idf_path, epwi, idd, overwrite, verbose, long_dir=True)
         else:
             return simulate_file(idf_path, epw, idd, overwrite, verbose, long_dir=True)
+
+    # Handle directory of IDF files
     elif os.path.isdir(idf_path):
         prs_pool = Pool(prs_count)
-        if isinstance(epw,list):
+
+        # Normalize EPW input
+        if isinstance(epw, list):
             long_dir = True
         else:
             epw = [epw]
             long_dir = False
+
         for epwi in epw:
             if prs_count <= os.cpu_count() and forceCPU:
-                idfs = [os.path.join(idf_path, file) for file in os.listdir(idf_path)]
-                idfs = [idf for idf in idfs if idf.endswith('.idf')]
+                # Get all IDF files in directory
+                idfs = [os.path.join(idf_path, file) for file in os.listdir(idf_path) if file.endswith('.idf')]
 
+                # Allocate IDF files to specific CPU cores
                 for cpu_index in range(1, prs_count + 1):
-                    # st = (cpu_index - 1) * np.floor(len(idfs) / prs_count)
-                    # ed = cpu_index * np.floor(len(idfs) / prs_count) if cpu_index < prs_count else len(idfs)
-                    prs_pool.apply_async(func=simulate_sequence,
-                                         args=(idfs[cpu_index - 1:], epwi, idd, overwrite, verbose, cpu_index,long_dir,),
-                                         callback=return_callback,
-                                         error_callback=error_callback)
-
+                    prs_pool.apply_async(
+                        func=simulate_sequence,
+                        args=(idfs[cpu_index - 1:], epwi, idd, overwrite, verbose, cpu_index, long_dir),
+                        callback=return_callback,
+                        error_callback=error_callback
+                    )
             else:
+                # No CPU core allocation - use all available cores
                 for file in os.listdir(idf_path):
-                    file = os.path.join(idf_path, file)
-                    prs_pool.apply_async(func=simulate_file,
-                                         args=(file, epwi, idd, overwrite, verbose, None,long_dir,),
-                                         callback=return_callback,
-                                         error_callback=error_callback)
+                    file_path = os.path.join(idf_path, file)
+                    if file_path.endswith('.idf'):
+                        prs_pool.apply_async(
+                            func=simulate_file,
+                            args=(file_path, epwi, idd, overwrite, verbose, None, long_dir),
+                            callback=return_callback,
+                            error_callback=error_callback
+                        )
+
+        # Wait for all processes to complete
         prs_pool.close()
         prs_pool.join()
-        idfstart = [os.path.join(idf_path, file) for file in os.listdir(idf_path) if file.endswith('.idfstart')]
-        for f in idfstart:
+
+        # Clean up lock files
+        idf_start_files = [os.path.join(idf_path, file) for file in os.listdir(idf_path) if file.endswith('.idfstart')]
+        for f in idf_start_files:
             os.remove(f)
+
         print('**********ALL DONE**********')
         return 1
 
+    return 0
 
-def simulate_cloud(idfs: list, epw: str, project_name: str = None,overwrite=True, prs_count=8, **kwargs):
+
+def simulate_cloud(
+        idfs: Union[str, List[str]],
+        epw: str,
+        project_name: Optional[str] = None,
+        overwrite: bool = True,
+        remote_folder: str = r"\\166.111.40.8\temp\epeditor\project",
+        timeouts: int = 1800
+) -> int:
     """
-    Simulate EnergyPlus models in the cloud using provided IDF files and an EPW file.
-    
+    Simulate IDF files on a remote cloud server by uploading and downloading.
+
     Parameters
     ----------
-    idfs : list of str or str
-        List of file paths to IDF files, or a directory path containing IDF files.
+    idfs : Union[str, List[str]]
+        Path to directory of IDF files or list of IDF file paths.
     epw : str
-        File path to the EPW weather file used for simulation.
-    project_name : str, optional
-        Name of the project directory. If not provided, a random 4-character code is generated.
-    overwrite : bool, default True
-        If False, skips uploading and processing for existing project directories.
-    prs_count : int, default 8
-        Number of parallel processes to use (currently ignored; parameter is invalid).
-    **kwargs
-        Additional keyword arguments passed as command-line options to the EnergyPlus executable.
-    
+        Path to the weather (EPW) file.
+    project_name : Optional[str], optional
+        Name of the remote project folder (default: None, auto-generated).
+    overwrite : bool, optional
+        Overwrite existing remote project if True (default: True).
+    remote_folder : str, optional
+        Path to remote storage folder (default: r"\\166.111.40.8\temp\epeditor\project").
+    timeouts : int, optional
+        Average timeout per task in seconds. It will be automatically adjusted during simulation (default: 1800).
+
     Returns
     -------
     int
-        Returns 1 upon successful completion of all simulations.
-    """
-    """
-    prs_count is invalid currently.
-    """
-    # test if ssh is valid
-    # user_dir = os.path.expanduser('~')
-    # if not os.path.exists(user_dir + '/.ssh'):
-    #     os.mkdir(user_dir + '/.ssh')
-    #     for f in os.listdir(r'\\166.111.40.8\temp\epeditor\.ssh'):
-    #         shutil.copy(os.path.join(r'\\166.111.40.8\temp\epeditor\.ssh', f), os.path.join(user_dir + '/.ssh', f))
+        1 if simulation completes successfully, 0 if remote access fails.
 
-    # check idf valid
+    Raises
+    ------
+    FileNotFoundError
+        If IDF or EPW file is not found.
+    """
     t1 = time.time()
+
+    # Normalize IDF input
     if isinstance(idfs, str):
         if os.path.isdir(idfs):
-            idfs = [os.path.join(idfs, idf) for idf in os.listdir(idfs)]
-    idfs = [idf for idf in idfs if idf.endswith('.idf')]
+            idfs = [os.path.join(idfs, file) for file in os.listdir(idfs)]
+    idfs = [file for file in idfs if file.endswith('.idf')]
+
+    # Generate project name if not provided
     if project_name is None:
         project_name = generate_code(4)
+
+    # Validate input files
     for idf_path in idfs:
         if not os.path.exists(idf_path):
-            raise FileNotFoundError(f'EPW not found: {idf_path}')
+            raise FileNotFoundError(f'IDF not found: {idf_path}')
     if not os.path.exists(epw):
         raise FileNotFoundError(f'EPW not found: {epw}')
-    epeditorDir = rf'\\166.111.40.8\temp\epeditor\project\{project_name}'
-    if not os.path.exists(epeditorDir):
-        os.mkdir(epeditorDir)
-    # uploading
+
+    # Prepare remote project directory
+    epeditor_dir = rf'{remote_folder}\{project_name}'
+    try:
+        if not os.path.exists(epeditor_dir):
+            os.mkdir(epeditor_dir)
+    except Exception as e:
+        print(f"Lost access to remote folder: {e}")
+        return 0
+
+    # Upload files to remote server
     tasks = []
-    for idx, idf in enumerate(idfs):
-        version = get_version(idf)
-        idd = get_idd(idf)
+    for idx, idf_path in enumerate(idfs):
+        # Get EnergyPlus version and IDD
+        version = get_version(idf_path)
+        idd = get_idd(idf_path)
         IDF.setiddname(idd)
-        idfObj = IDF(idf, epw=epw)
-        if len(idfObj.idfobjects['Output:SQLite']) == 0:
-            sql = idfObj.newidfobject('Output:SQLite')
+
+        # Load IDF and add SQLite output if missing
+        idf_obj = IDF(idf_path, epw=epw)
+        if len(idf_obj.idfobjects['Output:SQLite']) == 0:
+            sql = idf_obj.newidfobject('Output:SQLite')
             sql.Option_Type = 'Simple'
-            idfObj.save()
-            # print(f'add SQL to:{idf}')
-        idfDir = os.path.join(epeditorDir, os.path.basename(idf)[:-4])
-        if not overwrite:
-            if os.path.exists(idfDir):
-                tasks.append(idfDir)
-                continue
-        os.mkdir(idfDir)
-        shutil.copy(idf, os.path.join(idfDir, os.path.basename(idf)))
-        shutil.copy(epw, os.path.join(idfDir, os.path.basename(epw)))
+            idf_obj.save()
 
-        with open(os.path.join(idfDir, version + '.vrs'), 'w') as f:
+        # Create remote IDF directory
+        idf_dir = os.path.join(epeditor_dir, os.path.basename(idf_path)[:-4])
+        if not overwrite and os.path.exists(idf_dir):
+            tasks.append(idf_dir)
+            continue
+
+        os.mkdir(idf_dir)
+
+        # Copy files to remote directory
+        shutil.copy(idf_path, os.path.join(idf_dir, os.path.basename(idf_path)))
+        shutil.copy(epw, os.path.join(idf_dir, os.path.basename(epw)))
+
+        # Create version and run marker files
+        with open(os.path.join(idf_dir, f'{version}.vrs'), 'w') as f:
             f.write(version)
-        with open(os.path.join(idfDir, 'runit.runit'), 'w') as f:
+        with open(os.path.join(idf_dir, 'runit.runit'), 'w') as f:
             f.write("0")
-        tasks.append(idfDir)
-        bar(idx, len(idfs), 2,"Uploading")
 
-    # pack and upload file
-    # task = []
-    # epeditorDir = r'\\166.111.40.8\temp\epeditor\project'
-    # for cpu_index in range(1, prs_count + 1):
-    #     st = int((cpu_index - 1) * np.floor(len(idfs) / prs_count))
-    #     ed = int(cpu_index * np.floor(len(idfs) / prs_count)) if cpu_index < prs_count else len(idfs)
-    #     prjDir = rf'{epeditorDir}\{project_name}-{cpu_index}'
-    #     if os.path.exists(prjDir):
-    #         shutil.rmtree(prjDir)
-    #     os.mkdir(prjDir)
-    #     shutil.copy(epw, rf'{prjDir}\{os.path.basename(epw)}')
-    #     version = get_version(idfs[0])
-    #     energyplusEXE = f"/usr/local/EnergyPlus-{version}/energyplus-{'.'.join(version.split('-'))}"
-    #     with open(rf'{prjDir}\process.run', 'w+', encoding='utf-8', newline='') as f:
-    #         args = [energyplusEXE]
-    #         args.extend(['-w', f'\"/mnt/remote/project/{project_name}-{cpu_index}/{os.path.basename(epw)}\"'])
-    #         f.write('set -x ')
-    #         for arg in kwargs:
-    #             args.extend([f"--{arg}", kwargs[arg]])
-    #         for idf in idfs[st:ed]:
-    #             f.write(
-    #                 f"{' '.join(args)} -d \"/mnt/remote/project/{project_name}-{cpu_index}/{os.path.basename(idf)[:-4]}\" ")
-    #             f.write(
-    #                 f"\"/mnt/remote/project/{project_name}-{cpu_index}/{os.path.basename(idf)[:-4]}/{os.path.basename(idf)}\"\n")
-    #
-    #     for idf in idfs[st:ed]:
-    #         task.append([idf, f'{os.path.basename(idf)}', rf'{prjDir}\{os.path.basename(idf)[:-4]}'])
+        tasks.append(idf_dir)
+        bar(idx, len(idfs), 2, "Uploading")
 
-    # uploading
-    # for idx, idfInfo in enumerate(task):
-    #     os.mkdir(idfInfo[2])
-    #     shutil.copy(idfInfo[0], os.path.join(idfInfo[2], idfInfo[1]))
-    #     print('\ruploading: [', '*' * int(20 * idx / len(task)),
-    #           '-' * int(20 * (1 - idx / len(task))), ']', end='')
+    print(f"\n********Upload duration: {time.time() - t1:.2f}s********")
 
-    # call
-    # prs_pool = Pool(prs_count)
-    # address = [
-    #     "192.168.1.157",
-    #     "192.168.1.246",
-    #     "192.168.1.185",
-    #     "192.168.1.240",
-    #     "192.168.1.115",
-    #     "192.168.1.229",
-    #     "192.168.1.136",
-    #     "192.168.1.149",
-    # ]
-    # for cpu_index in range(prs_count):
-    #     prs_pool.apply_async(sshRunCmd, args=(address[cpu_index], f"{project_name}-{cpu_index + 1}",))
+    # Monitor simulation progress
+    check_tasks = tasks.copy()
+    check_idfs = idfs.copy()
 
-    print(time.time() - t1)
+    simulation_control = {
+        "remainTask": 0,
+        "checkPoint": 0,
+        "averageTimeout": timeouts,
+        "startTime": time.time()
+    }
 
-    # check Finished:
-    checkTasks = [ts for ts in tasks]
-    checkIdfs = [idf for idf in idfs]
-    while len(checkTasks)>0:
-        finishedNew = []
-        remainTask = 0
-        for idx, idfDir in enumerate(checkTasks):
-            fs = [file for file in os.listdir(idfDir) if file.endswith('.eso')]
-            fs += [file for file in os.listdir(idfDir) if file.endswith('.err')]
-            if len(fs) == 0:
-                remainTask += 1
+    while len(check_tasks) > 0:
+        finished_indices = []
+        remain_task = 0
+
+        # Check each task for completion
+        for idx, idf_dir in enumerate(check_tasks):
+            finished_files = [f for f in os.listdir(idf_dir) if f.endswith(('.eso', '.err'))]
+            if len(finished_files) == 0:
+                remain_task += 1
             else:
-                finishedNew.append(idx)
-        for idx in finishedNew:
-            shutil.copytree(checkTasks[idx], checkIdfs[idx][:-4])
-        checkTasks = np.delete(checkTasks, finishedNew)
-        checkIdfs = np.delete(checkIdfs, finishedNew)
-        bar(len(tasks)-remainTask,len(tasks),2,f'Remain:{remainTask}')
+                finished_indices.append(idx)
+
+        # Copy completed results back
+        for idx in finished_indices:
+            print(f"\rDownloading: {check_tasks[idx]}", end="")
+            shutil.copytree(check_tasks[idx], check_idfs[idx][:-4])
+
+        # Update task lists
+        check_tasks = np.delete(check_tasks, finished_indices).tolist()
+        check_idfs = np.delete(check_idfs, finished_indices).tolist()
+
+        # Update progress bar
+        bar(len(tasks) - remain_task, len(tasks), 2, f'Remain:{remain_task}')
+
+        # Update simulation control metrics
+        if remain_task != simulation_control['remainTask']:
+            simulation_control['remainTask'] = remain_task
+            simulation_control['checkPoint'] = time.time()
+            if len(tasks) - remain_task > 0:
+                simulation_control['averageTimeout'] = (time.time() - simulation_control['startTime']) / (
+                        len(tasks) - remain_task
+                )
+        else:
+            # Timeout check
+            if time.time() - simulation_control['checkPoint'] > 1.5 * simulation_control['averageTimeout']:
+                break
+
         time.sleep(1)
 
+    # Print final statistics
+    success_count = len(tasks) - remain_task
+    print(
+        f"\nSuccess: {success_count}, Failed: {remain_task}, "
+        f"Average time: {simulation_control['averageTimeout']:.2f}s"
+    )
     print('**********ALL DONE**********')
 
     return 1
 
-
-def sshRunCmd(address, simDir):
+def find_sql(idf_dir: str) -> Dict[str, str]:
     """
-    Execute a remote script via SSH after waiting for a file to be created.
-    
-    Parameters
-    ----------
-    address : str
-        The IP address or hostname of the remote machine to connect to via SSH.
-    simDir : str
-        The directory name under which the process.run script is located on the remote machine.
-    
-    Returns
-    -------
-    None
-        This function does not return any value.
-    """
-    for i in range(10):
-        if not os.path.exists(rf'\\166.111.40.8\temp\epeditor\project/{simDir}/process.run'):
-            time.sleep(1)
-    os.system(f'ssh epeditor0@{address} /mnt/remote/project/{simDir}/process.run')
-    return
+    Recursively find all SQLite result files in a directory.
 
-
-def find_sql(idf_dir: str):
-    """
-    Find SQL files in a given directory and map them by case name.
-    
     Parameters
     ----------
     idf_dir : str
-        Directory path to search for SQL files. The function recursively traverses this directory.
-    
+        Directory to search for SQL files.
+
     Returns
     -------
-    dict
-        A dictionary mapping case names (derived from the parent directory of each SQL file) to the full path of the SQL file.
+    Dict[str, str]
+        Dictionary mapping case names to SQL file paths.
     """
-    file_package = os.walk(idf_dir)
-    sql = {}
-    for dirpath, dirnames, filenames in file_package:
+    sql_files = {}
+    for dirpath, _, filenames in os.walk(idf_dir):
         for file in filenames:
-            if re.search('\.sql', file, re.IGNORECASE) != None:
-                case = os.path.normpath(dirpath).split(os.sep)[-1]
-                sql[case] = os.path.join(dirpath, file)
-    return sql
-
+            if re.search(r'\.sql', file, re.IGNORECASE):
+                case_name = os.path.normpath(dirpath).split(os.sep)[-1]
+                sql_files[case_name] = os.path.join(dirpath, file)
+    return sql_files
 
 if __name__ == '__main__':
     msg = simulate_file(
