@@ -28,6 +28,9 @@ python setup.py
 the repository of sever side is not avaliable via docker.  
 Please refer to [Epeditor Sever](https://github.com/UmikoXiao/Epeditor_server)
 
+### Skill Side
+The epeditor skill is now avaliable!
+Please refer to [Epeditor Skill](https://github.com/UmikoXiao/epeditor-skill)
 
 ---
 
