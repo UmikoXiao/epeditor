@@ -2,9 +2,9 @@ import sqlite3
 from collections import OrderedDict
 from datetime import datetime, timedelta
 
-from db_eplusout_reader.constants import RP, TS, A, D, H, M
-from db_eplusout_reader.processing.esofile_reader import Variable
-from db_eplusout_reader.results_dict import ResultsDictionary
+from .constants import RP, TS, A, D, H, M
+from .processing.esofile_reader import Variable
+from .results_dict import ResultsDictionary
 
 DATA_TABLE = "ReportData"
 DATA_DICT_TABLE = "ReportDataDictionary"
@@ -12,7 +12,19 @@ TIME_TABLE = "Time"
 
 
 def to_eso_frequency(sql_frequency):
-    """Convert '.sql' frequency type to '.eso'."""
+    """
+    To eso frequency.
+    
+    Parameters
+    ----------
+    sql_frequency : Any
+        Input parameter `sql_frequency`.
+    
+    Returns
+    -------
+    Any
+        Return value from `to_eso_frequency`.
+    """
     frequencies = {
         "Zone Timestep": TS,
         "Hourly": H,
@@ -26,7 +38,19 @@ def to_eso_frequency(sql_frequency):
 
 
 def to_sql_frequency(eso_frequency):
-    """Convert '.eso' frequency type to '.sql'."""
+    """
+    To sql frequency.
+    
+    Parameters
+    ----------
+    eso_frequency : Any
+        Input parameter `eso_frequency`.
+    
+    Returns
+    -------
+    Any
+        Return value from `to_sql_frequency`.
+    """
     if eso_frequency is None:
         frequency = None
     else:
@@ -43,7 +67,19 @@ def to_sql_frequency(eso_frequency):
 
 
 def eso_to_sql_variable(variable):
-    """Convert 'Variable' to be compatible with sql queries."""
+    """
+    Eso to sql variable.
+    
+    Parameters
+    ----------
+    variable : Any
+        Input parameter `variable`.
+    
+    Returns
+    -------
+    Any
+        Return value from `eso_to_sql_variable`.
+    """
     sql_columns = ["KeyValue", "Name", "Units"]
     sql_variable = {}
     for variable, column in zip(variable, sql_columns):
@@ -53,7 +89,22 @@ def eso_to_sql_variable(variable):
 
 
 def data_dict_statement(columns, alike):
-    """Create statement to fetch matching data dict rows."""
+    """
+    Data dict statement.
+    
+    Parameters
+    ----------
+    columns : Any
+        Input parameter `columns`.
+    
+    alike : Any
+        Input parameter `alike`.
+    
+    Returns
+    -------
+    Any
+        Return value from `data_dict_statement`.
+    """
     statement = (
         "SELECT ReportDataDictionaryIndex, ReportingFrequency, KeyValue, Name, Units"
         " FROM ReportDataDictionary WHERE ReportingFrequency =?"
@@ -66,12 +117,45 @@ def data_dict_statement(columns, alike):
 
 
 def add_wild_cards(search_tuple):
-    """Add wild card characters for 'LIKE' query."""
+    """
+    Add wild cards.
+    
+    Parameters
+    ----------
+    search_tuple : Any
+        Input parameter `search_tuple`.
+    
+    Returns
+    -------
+    Any
+        Return value from `add_wild_cards`.
+    """
     return tuple("%" + s + "%" for s in search_tuple)
 
 
 def fetch_data_dict_rows(conn, variable, sql_frequency, alike):
-    """Get all rows matching given 'Variable' request."""
+    """
+    Fetch data dict rows.
+    
+    Parameters
+    ----------
+    conn : Any
+        Input parameter `conn`.
+    
+    variable : Any
+        Input parameter `variable`.
+    
+    sql_frequency : Any
+        Input parameter `sql_frequency`.
+    
+    alike : Any
+        Input parameter `alike`.
+    
+    Returns
+    -------
+    Any
+        Return value from `fetch_data_dict_rows`.
+    """
     sql_variable = eso_to_sql_variable(variable)
     statement = data_dict_statement(sql_variable.keys(), alike)
     if sql_variable:
@@ -86,11 +170,36 @@ def fetch_data_dict_rows(conn, variable, sql_frequency, alike):
 
 
 def to_string(unicode_variable):
-    """Convert 'variable unicode field names to string field names."""
+    """
+    To string.
+    
+    Parameters
+    ----------
+    unicode_variable : Any
+        Input parameter `unicode_variable`.
+    
+    Returns
+    -------
+    Any
+        Return value from `to_string`.
+    """
     return Variable(*map(lambda x: str(x), unicode_variable))
 
 
 def get_unsorted_sub_dict(rows):
+    """
+    Get unsorted sub dict.
+    
+    Parameters
+    ----------
+    rows : Any
+        Input parameter `rows`.
+    
+    Returns
+    -------
+    Any
+        Return value from `get_unsorted_sub_dict`.
+    """
     unsorted_dict = {}
     for id_, frequency, key, type_, units in rows:
         unicode_variable = Variable(key, type_, units)
@@ -100,6 +209,19 @@ def get_unsorted_sub_dict(rows):
 
 
 def sort_by_value(unsorted_dict):
+    """
+    Sort by value.
+    
+    Parameters
+    ----------
+    unsorted_dict : Any
+        Input parameter `unsorted_dict`.
+    
+    Returns
+    -------
+    Any
+        Return value from `sort_by_value`.
+    """
     sorted_dct = OrderedDict()
     sorted_items = [item for item in sorted(unsorted_dict.items(), key=lambda x: x[1])]
     for key, value in sorted_items:
@@ -108,7 +230,28 @@ def sort_by_value(unsorted_dict):
 
 
 def get_ids_dict(conn, variables, sql_frequency, alike):
-    """Find id : Variable pairs for given 'Variable' request."""
+    """
+    Get ids dict.
+    
+    Parameters
+    ----------
+    conn : Any
+        Input parameter `conn`.
+    
+    variables : Any
+        Input parameter `variables`.
+    
+    sql_frequency : Any
+        Input parameter `sql_frequency`.
+    
+    alike : Any
+        Input parameter `alike`.
+    
+    Returns
+    -------
+    Any
+        Return value from `get_ids_dict`.
+    """
     all_ids_dict = OrderedDict()
     for variable in variables:
         rows = fetch_data_dict_rows(conn, variable, sql_frequency, alike)
@@ -118,7 +261,25 @@ def get_ids_dict(conn, variables, sql_frequency, alike):
 
 
 def validate_time(timestamp, start_date, end_date):
-    """Check if given timestamp lies between start and end dates."""
+    """
+    Validate time.
+    
+    Parameters
+    ----------
+    timestamp : Any
+        Input parameter `timestamp`.
+    
+    start_date : Any
+        Input parameter `start_date`.
+    
+    end_date : Any
+        Input parameter `end_date`.
+    
+    Returns
+    -------
+    Any
+        Return value from `validate_time`.
+    """
     if start_date and end_date:
         valid = start_date <= timestamp <= end_date
     elif start_date:
@@ -131,7 +292,22 @@ def validate_time(timestamp, start_date, end_date):
 
 
 def get_output_rows_with_time(conn, id_):
-    """Fetch output values with associated timestamp."""
+    """
+    Get output rows with time.
+    
+    Parameters
+    ----------
+    conn : Any
+        Input parameter `conn`.
+    
+    id_ : Any
+        Input parameter `id_`.
+    
+    Returns
+    -------
+    Any
+        Return value from `get_output_rows_with_time`.
+    """
     statement = (
         "SELECT ReportData.Value, "
         "Time.IntervalType, Time.Year, Time.Month, Time.Day, Time.Hour, Time.Minute"
@@ -143,7 +319,28 @@ def get_output_rows_with_time(conn, id_):
 
 
 def get_sliced_outputs(conn, id_, start_date, end_date):
-    """Get array of output values for given variable id sliced by given dates."""
+    """
+    Get sliced outputs.
+    
+    Parameters
+    ----------
+    conn : Any
+        Input parameter `conn`.
+    
+    id_ : Any
+        Input parameter `id_`.
+    
+    start_date : Any
+        Input parameter `start_date`.
+    
+    end_date : Any
+        Input parameter `end_date`.
+    
+    Returns
+    -------
+    Any
+        Return value from `get_sliced_outputs`.
+    """
     results = []
     for row in get_output_rows_with_time(conn, id_):
         timestamp = parse_sql_timestamp(row[1:])
@@ -153,7 +350,22 @@ def get_sliced_outputs(conn, id_, start_date, end_date):
 
 
 def get_outputs(conn, id_):
-    """Get array of output values for given variable id."""
+    """
+    Get outputs.
+    
+    Parameters
+    ----------
+    conn : Any
+        Input parameter `conn`.
+    
+    id_ : Any
+        Input parameter `id_`.
+    
+    Returns
+    -------
+    Any
+        Return value from `get_outputs`.
+    """
     statement = (
         "SELECT ReportData.Value FROM ReportData"
         " WHERE ReportData.ReportDataDictionaryIndex = ?"
@@ -162,7 +374,19 @@ def get_outputs(conn, id_):
 
 
 def dates_statement(frequency):
-    """Create statement to fetch numeric output rows."""
+    """
+    Dates statement.
+    
+    Parameters
+    ----------
+    frequency : Any
+        Input parameter `frequency`.
+    
+    Returns
+    -------
+    Any
+        Return value from `dates_statement`.
+    """
     switch = {TS: -1, H: 1, D: 2, M: 3, RP: 4, A: 5}
     statement = (
         "SELECT Time.IntervalType, Time.Year, Time.Month, Time.Day,"
@@ -173,7 +397,19 @@ def dates_statement(frequency):
 
 
 def parse_sql_timestamp(time_row):
-    """Convert EnerguPlus timestamp to standard datetime."""
+    """
+    Parse sql timestamp.
+    
+    Parameters
+    ----------
+    time_row : Any
+        Input parameter `time_row`.
+    
+    Returns
+    -------
+    Any
+        Return value from `parse_sql_timestamp`.
+    """
     interval, year, month, day, hour, minute = time_row
     year = 2002 if (year == 0 or year is None) else year
 
@@ -195,7 +431,19 @@ def parse_sql_timestamp(time_row):
 
 
 def parse_sql_timestamps(time_rows):
-    """Convert EnergyPlus timestamps to standard datetime."""
+    """
+    Parse sql timestamps.
+    
+    Parameters
+    ----------
+    time_rows : Any
+        Input parameter `time_rows`.
+    
+    Returns
+    -------
+    Any
+        Return value from `parse_sql_timestamps`.
+    """
     timestamps = []
     for row in time_rows:
         timestamps.append(parse_sql_timestamp(row))
@@ -203,6 +451,25 @@ def parse_sql_timestamps(time_rows):
 
 
 def filter_timestamps(timestamps, start_date, end_date):
+    """
+    Filter timestamps.
+    
+    Parameters
+    ----------
+    timestamps : Any
+        Input parameter `timestamps`.
+    
+    start_date : Any
+        Input parameter `start_date`.
+    
+    end_date : Any
+        Input parameter `end_date`.
+    
+    Returns
+    -------
+    Any
+        Return value from `filter_timestamps`.
+    """
     valid_timestamps = []
     for timestamp in timestamps:
         if validate_time(timestamp, start_date, end_date):
@@ -211,7 +478,28 @@ def filter_timestamps(timestamps, start_date, end_date):
 
 
 def get_timestamps_from_sql(path, frequency, start_date=None, end_date=None):
-    """Fetch timestamps for given frequency."""
+    """
+    Get timestamps from sql.
+    
+    Parameters
+    ----------
+    path : Any
+        Input parameter `path`.
+    
+    frequency : Any
+        Input parameter `frequency`.
+    
+    start_date : Any
+        Input parameter `start_date`.
+    
+    end_date : Any
+        Input parameter `end_date`.
+    
+    Returns
+    -------
+    Any
+        Return value from `get_timestamps_from_sql`.
+    """
     conn = sqlite3.connect(path)
 
     statement = dates_statement(frequency)
@@ -229,28 +517,32 @@ def get_results_from_sql(
     path, variables, frequency, alike=False, start_date=None, end_date=None
 ):
     """
-    Extract output values from given EnergyPlus .sql file.
-
+    Get results from sql.
+    
     Parameters
     ----------
-    path : str
-        A path to EnergyPlus .sql file output.
-    variables : Variable or List of Variable
-        Requested output variables.
-    frequency : str
-        An output interval, this can be one of {TS, H, D, M, A, RP} constants.
-    alike : default False, bool
-        Specify if full string or only part of variable attribute
-        needs to match, it's case insensitive in both cases.
-    start_date : default None, datetime.datetime
-        Lower datetime interval boundary, inclusive.
-    end_date : default None, datetime.datetime
-        Upper datetime interval boundary, inclusive.
-
+    path : Any
+        Input parameter `path`.
+    
+    variables : Any
+        Input parameter `variables`.
+    
+    frequency : Any
+        Input parameter `frequency`.
+    
+    alike : Any
+        Input parameter `alike`.
+    
+    start_date : Any
+        Input parameter `start_date`.
+    
+    end_date : Any
+        Input parameter `end_date`.
+    
     Returns
     -------
-    ResultsDictionary : Dict of {Variable, list of float}
-
+    Any
+        Return value from `get_results_from_sql`.
     """
     conn = sqlite3.connect(path)
     variables = [variables] if isinstance(variables, Variable) else variables
@@ -265,3 +557,4 @@ def get_results_from_sql(
     rd.time_series = get_timestamps_from_sql(path, frequency, start_date, end_date)
     conn.close()
     return rd
+

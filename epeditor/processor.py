@@ -8,18 +8,32 @@ import re
 
 
 class IDFsearchresult:
-    '''
-        不能自动读取class和name，太气人了
-        用于打包搜索结果，也是IDFEditor的基类
-        obj: idfobj
-        idfclass: idf类型，可被自动读取
-        name: 对象名称，可被自动读取
-        field: 搜索/修改的field名称，可为空; 定义为IDFEditor时必须填写
-    '''
-
+    """Container for an IDF search hit with class, object name, and field metadata."""
     __slots__ = ['obj', 'idfclass', 'name', 'field', 'value']
 
     def __init__(self, obj: eppy.bunch_subclass.EpBunch, idfclass: str = None, name: str = None, field=None):
+        """
+          init  .
+        
+        Parameters
+        ----------
+        obj : eppy.bunch_subclass.EpBunch
+            Input parameter `obj`.
+        
+        idfclass : str
+            Input parameter `idfclass`.
+        
+        name : str
+            Input parameter `name`.
+        
+        field : Any
+            Input parameter `field`.
+        
+        Returns
+        -------
+        None
+            Return value from `__init__`.
+        """
         if idfclass is None:
             idfclass = obj.fieldvalues[0]
         if name is None:
@@ -35,6 +49,14 @@ class IDFsearchresult:
             self.value = ''
 
     def __repr__(self):
+        """
+          repr  .
+        
+        Returns
+        -------
+        Any
+            Return value from `__repr__`.
+        """
         res = '\n'+self.__class__.__name__
         res += '\n|\tClass: ' + self.idfclass
         res += ',\tName: ' + self.name
@@ -43,6 +65,22 @@ class IDFsearchresult:
         return res
 
     def referred_object(self,field,obj=False):
+        """
+        Referred object.
+        
+        Parameters
+        ----------
+        field : Any
+            Input parameter `field`.
+        
+        obj : Any
+            Input parameter `obj`.
+        
+        Returns
+        -------
+        Any
+            Return value from `referred_object`.
+        """
         if isinstance(field,int):
             field = self.obj.fieldnames[field]
         ref_obj = self.obj.get_referenced_object(field)
@@ -55,6 +93,19 @@ class IDFsearchresult:
             return None
 
     def referred_list(self,obj=False):
+        """
+        Referred list.
+        
+        Parameters
+        ----------
+        obj : Any
+            Input parameter `obj`.
+        
+        Returns
+        -------
+        Any
+            Return value from `referred_list`.
+        """
         ref_list=[]
         for i in range(2,len(self.obj.fieldnames)):
             field = self.obj.fieldnames[i]
@@ -66,6 +117,19 @@ class IDFsearchresult:
         return ref_list
 
     def equal(self,others):
+        """
+        Equal.
+        
+        Parameters
+        ----------
+        others : Any
+            Input parameter `others`.
+        
+        Returns
+        -------
+        Any
+            Return value from `equal`.
+        """
         if self.idfclass == others.idfclass and self.name == others.name and self.field == others.field:
             return True
         else:
@@ -73,15 +137,32 @@ class IDFsearchresult:
 
 
 class IDFEditor(IDFsearchresult):
-    '''
-        默认每次调参都建立在search之上
-        sampler: 调参方法，限定为generator类型； 所有sampler被归档于sampler
-        args: sampler用到的函数args
-        params: 采样出来的参数
-    '''
+    """Parameterized editor that binds a target field to a sampling generator."""
     __slots__ = ['sampler', 'args', 'params']
 
     def __init__(self, object, field=None, _sampler: Generator = original, args: list = None):
+        """
+          init  .
+        
+        Parameters
+        ----------
+        object : Any
+            Input parameter `object`.
+        
+        field : Any
+            Input parameter `field`.
+        
+        _sampler : Generator
+            Input parameter `_sampler`.
+        
+        args : list
+            Input parameter `args`.
+        
+        Returns
+        -------
+        None
+            Return value from `__init__`.
+        """
         searchresult=object
         if isinstance(searchresult,eppy.bunch_subclass.EpBunch):
             searchresult=IDFsearchresult(searchresult,field=field)
@@ -104,12 +185,56 @@ class IDFEditor(IDFsearchresult):
     @classmethod
     def from_idfobject(cls, obj: eppy.bunch_subclass.EpBunch, field: str, _sampler: Generator = original,
                        args: list = None):
+        """
+        From idfobject.
+        
+        Parameters
+        ----------
+        obj : eppy.bunch_subclass.EpBunch
+            Input parameter `obj`.
+        
+        field : str
+            Input parameter `field`.
+        
+        _sampler : Generator
+            Input parameter `_sampler`.
+        
+        args : list
+            Input parameter `args`.
+        
+        Returns
+        -------
+        Any
+            Return value from `from_idfobject`.
+        """
         editor = IDFsearchresult(obj, field=field)
         editor = cls(editor, _sampler=_sampler, args=args)
         return editor
 
     @classmethod
     def eval(cls,model, editorstr:str,_sampler: Generator = original,args: list = None):
+        """
+        Eval.
+        
+        Parameters
+        ----------
+        model : Any
+            Input parameter `model`.
+        
+        editorstr : str
+            Input parameter `editorstr`.
+        
+        _sampler : Generator
+            Input parameter `_sampler`.
+        
+        args : list
+            Input parameter `args`.
+        
+        Returns
+        -------
+        Any
+            Return value from `eval`.
+        """
         editorstr=editorstr.split('>')
         editor = model.eval(editorstr[0],editorstr[1],editorstr[2])
         editor = cls(editor, _sampler=_sampler, args=args)
@@ -117,6 +242,22 @@ class IDFEditor(IDFsearchresult):
 
     @classmethod
     def load(cls,model,editorpath:str):
+        """
+        Load.
+        
+        Parameters
+        ----------
+        model : Any
+            Input parameter `model`.
+        
+        editorpath : str
+            Input parameter `editorpath`.
+        
+        Returns
+        -------
+        Any
+            Return value from `load`.
+        """
         with open(editorpath,'r') as f:
             text = [line.strip('\n') for line in f.readlines()]
             editorstr = text[0]
@@ -125,6 +266,19 @@ class IDFEditor(IDFsearchresult):
             return cls.eval(model,editorstr,sampler,args)
 
     def save(self,editorpath:str):
+        """
+        Save.
+        
+        Parameters
+        ----------
+        editorpath : str
+            Input parameter `editorpath`.
+        
+        Returns
+        -------
+        Any
+            Return value from `save`.
+        """
         sampler_path='smp_'+generate_code(6)+'.py'
         self.sampler.run_to_py(os.path.join(os.path.dirname(editorpath),sampler_path))
         editorstr = '>'.join([self.idfclass,self.name,self.field])
@@ -137,6 +291,14 @@ class IDFEditor(IDFsearchresult):
 
 
     def generate(self):
+        """
+        Generate.
+        
+        Returns
+        -------
+        Any
+            Return value from `generate`.
+        """
         self.params = []
         for param in self.sampler.run(*self.args):
             try:
@@ -150,11 +312,35 @@ class IDFEditor(IDFsearchresult):
             self.params.append(param)
 
     def apply_generator(self, _sampler: Generator, args: list):
+        """
+        Apply generator.
+        
+        Parameters
+        ----------
+        _sampler : Generator
+            Input parameter `_sampler`.
+        
+        args : list
+            Input parameter `args`.
+        
+        Returns
+        -------
+        Any
+            Return value from `apply_generator`.
+        """
         self.sampler = _sampler
         self.args = args
         self.generate()
 
     def __str__(self):
+        """
+          str  .
+        
+        Returns
+        -------
+        Any
+            Return value from `__str__`.
+        """
         res = super(IDFEditor, self).__repr__()
         res += '\n|\tGenerator: ' + self.sampler.name
         res += ',\targs: ' + str(self.args)
@@ -162,6 +348,14 @@ class IDFEditor(IDFsearchresult):
         return res
 
     def __repr__(self):
+        """
+          repr  .
+        
+        Returns
+        -------
+        Any
+            Return value from `__repr__`.
+        """
         res = self.__class__.__name__
         res += ' : Class:' + self.idfclass
         res += ' > Name:' + self.name
@@ -170,14 +364,23 @@ class IDFEditor(IDFsearchresult):
 
 
 class IDFGroupEditor:
-    '''
-        由单个或多个IDFEditor组成，单个GroupEditor内参数为一对一关系，!!按照params最短者处理!!
-        IDFGroupEditor之间在导出时会交叉(cross product),例如：
-        IDFGroupEditor[0]有30组params，IDFGroupEditor[1]有40组params，则会生成1200个idf文件！
-    '''
+    """Group of IDF editors for combined parameter-set generation."""
     __slots__ = ['editors', 'params_num','name']
 
     def __init__(self, *editors: IDFEditor):
+        """
+          init  .
+        
+        Parameters
+        ----------
+        *editors : IDFEditor
+            Input parameter `*editors`.
+        
+        Returns
+        -------
+        None
+            Return value from `__init__`.
+        """
         for edit in editors:
             edit.generate()
         min_params = np.min([len(edit.params) for edit in editors])
@@ -189,6 +392,19 @@ class IDFGroupEditor:
 
     @classmethod
     def group(cls, *editors):
+        """
+        Group.
+        
+        Parameters
+        ----------
+        *editors : Any
+            Input parameter `*editors`.
+        
+        Returns
+        -------
+        Any
+            Return value from `group`.
+        """
         cross_mode = False
         for edit in editors:
             if not isinstance(edit,IDFEditor):
@@ -211,6 +427,22 @@ class IDFGroupEditor:
 
     @classmethod
     def cross(cls,geditor1,geidtor2):
+        """
+        Cross.
+        
+        Parameters
+        ----------
+        geditor1 : Any
+            Input parameter `geditor1`.
+        
+        geidtor2 : Any
+            Input parameter `geidtor2`.
+        
+        Returns
+        -------
+        Any
+            Return value from `cross`.
+        """
         for edit in geditor1.editors:
             edit.params = np.repeat([edit.params], geidtor2.params_num, axis=0).flatten()
         for edit in geidtor2.editors:
@@ -221,6 +453,22 @@ class IDFGroupEditor:
 
     @classmethod
     def merge(cls,geditor1,geditor2):
+        """
+        Merge.
+        
+        Parameters
+        ----------
+        geditor1 : Any
+            Input parameter `geditor1`.
+        
+        geditor2 : Any
+            Input parameter `geditor2`.
+        
+        Returns
+        -------
+        Any
+            Return value from `merge`.
+        """
         if isinstance(geditor1,IDFEditor):
             geditor1=IDFGroupEditor(geditor1)
         if isinstance(geditor2,IDFEditor):
@@ -229,6 +477,19 @@ class IDFGroupEditor:
         return geditor
 
     def drop(self,*editorStr):
+        """
+        Drop.
+        
+        Parameters
+        ----------
+        *editorStr : Any
+            Input parameter `*editorStr`.
+        
+        Returns
+        -------
+        Any
+            Return value from `drop`.
+        """
         delId=[]
         for _str in editorStr:
             _str = _str.split('>')
@@ -241,12 +502,36 @@ class IDFGroupEditor:
 
 
     def editorSeries(self):
+        """
+        Editorseries.
+        
+        Returns
+        -------
+        Any
+            Return value from `editorSeries`.
+        """
         return [' > '.join([edit.idfclass,edit.name,edit.field]) for edit in self.editors]
 
     def __repr__(self):
+        """
+          repr  .
+        
+        Returns
+        -------
+        Any
+            Return value from `__repr__`.
+        """
         return self.__class__.__name__ + '\tEditors: ' + str(len(self.editors)) + '\tParamters: ' + str(self.params_num)
 
     def __str__(self):
+        """
+          str  .
+        
+        Returns
+        -------
+        Any
+            Return value from `__str__`.
+        """
         return '\n'.join(
             ['_' * 20] + [self.__class__.__name__ + '\tParamters: ' + str(self.params_num)] + [edit.__str__() for edit
                                                                                                in self.editors] + [
@@ -255,6 +540,19 @@ class IDFGroupEditor:
 
 
     def to_csv(self, csv_path):
+        """
+        To csv.
+        
+        Parameters
+        ----------
+        csv_path : Any
+            Input parameter `csv_path`.
+        
+        Returns
+        -------
+        Any
+            Return value from `to_csv`.
+        """
         cols = np.array(
             [['>'.join([edit.idfclass,edit.name,edit.field])] + [str(para) for para in edit.params] for edit in self.editors])
         rows = [','.join(row) for row in cols.T]
@@ -262,17 +560,57 @@ class IDFGroupEditor:
             f.write('\n'.join(rows))
 
     def to_npy(self, npy_path):
+        """
+        To npy.
+        
+        Parameters
+        ----------
+        npy_path : Any
+            Input parameter `npy_path`.
+        
+        Returns
+        -------
+        Any
+            Return value from `to_npy`.
+        """
         cols = np.array(
             [['>'.join([edit.idfclass,edit.name,edit.field])] + [str(para) for para in edit.params] for edit in self.editors])
         np.save(npy_path, cols.T)
 
     def to_numpy(self):
+        """
+        To numpy.
+        
+        Returns
+        -------
+        Any
+            Return value from `to_numpy`.
+        """
         return np.array(
             [['>'.join([edit.idfclass, edit.name, edit.field])] + [str(para) for para in edit.params] for edit in
              self.editors]).T
 
     @classmethod
     def load(cls, model, geditorpath:str,returnFileNames = False):
+        """
+        Load.
+        
+        Parameters
+        ----------
+        model : Any
+            Input parameter `model`.
+        
+        geditorpath : str
+            Input parameter `geditorpath`.
+        
+        returnFileNames : Any
+            Input parameter `returnFileNames`.
+        
+        Returns
+        -------
+        Any
+            Return value from `load`.
+        """
         sheet=[]
         fileNames = None
         if geditorpath[-4:]=='.csv' or geditorpath[-4:]=='ged':

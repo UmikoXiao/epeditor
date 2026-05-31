@@ -10,26 +10,33 @@ from .utils import *
 
 
 class IDFModel(IDF):
-    '''
-        方便Baseline管理的增强IDF类型，提供更方便的idfobject管理
-        objectdict:增强idfobjects方法，方便根据name查阅object
-        file_name:记录baseline地址
-        folder: 记录导出路径
-        sql: 记录结果sql路径
-        variables: 记录结果所有的variables
-
-        classmethod:
-        get_objectdict() 获取所有idfobjects的dictionary
-        search() 增强idfobjects方法，所有search的标准化入口，调用下属三个函数：
-        search_object() 增强idfobjects方法，方便直接根据name获取object
-        search_class() 增强idfobjects方法，方便直接根据关键词搜索class带该名字的
-        search_filed() 增强idfobjects方法，方便直接根据name获取带关键词的field
-
-    '''
+    """Enhanced IDF model wrapper for batch editing and simulation workflows."""
     __slots__ = ['objectdict', 'references', 'file_name', 'idd', 'folder', 'sql', 'variables']
 
     def __init__(self, idf_file=None, epw=None, idd=None, folder=None):
 
+        """
+          init  .
+        
+        Parameters
+        ----------
+        idf_file : Any
+            Input parameter `idf_file`.
+        
+        epw : Any
+            Input parameter `epw`.
+        
+        idd : Any
+            Input parameter `idd`.
+        
+        folder : Any
+            Input parameter `folder`.
+        
+        Returns
+        -------
+        None
+            Return value from `__init__`.
+        """
         if folder is not None:
             for dirpath, dirnames, filenames in os.walk(folder):
                 for file in filenames:
@@ -43,8 +50,6 @@ class IDFModel(IDF):
             self.variables: dict | None = None
         if idf_file is None:
             return
-
-        # process utf-8 incompatible issues
         remove_chinese_characters(idf_file)
 
         self.file_name = os.path.normpath(idf_file)
@@ -57,14 +62,30 @@ class IDFModel(IDF):
         self.idd = idd
         IDF.setiddname(idd)
         super(IDFModel, self).__init__(idf_file, epw=epw)
-        self.get_objectdict()  # 获取obj列表，方便查询
+        self.get_objectdict()
 
     def __repr__(self):
+        """
+          repr  .
+        
+        Returns
+        -------
+        Any
+            Return value from `__repr__`.
+        """
         res = self.file_name + '\n'
         res += 'BASELINE VERSION:' + str(self.idfobjects['VERSION'][0]['Version_Identifier'])
         return res
 
     def __str__(self):
+        """
+          str  .
+        
+        Returns
+        -------
+        Any
+            Return value from `__str__`.
+        """
         res = self.file_name + '\n'
         res += 'BASELINE VERSION:' + str(self.idfobjects['VERSION'][0]['Version_Identifier']) + '\n'
         res += 'idd:' + self.idd + '\n'
@@ -79,6 +100,14 @@ class IDFModel(IDF):
         return res
 
     def get_objectdict(self):
+        """
+        Get objectdict.
+        
+        Returns
+        -------
+        Any
+            Return value from `get_objectdict`.
+        """
         self.objectdict = {}
         for idfclass in self.idfobjects.keys():
             objs = [obj for obj in self.idfobjects[idfclass] if len(list(obj.values())[0]) > 1]
@@ -90,6 +119,28 @@ class IDFModel(IDF):
         return self.objectdict
 
     def search(self, searchname: str, strict=True, searchlist=None, searchtype=ANYTHING):
+        """
+        Search.
+        
+        Parameters
+        ----------
+        searchname : str
+            Input parameter `searchname`.
+        
+        strict : Any
+            Input parameter `strict`.
+        
+        searchlist : Any
+            Input parameter `searchlist`.
+        
+        searchtype : Any
+            Input parameter `searchtype`.
+        
+        Returns
+        -------
+        Any
+            Return value from `search`.
+        """
         if strict:
             searchname = [searchname]
         else:
@@ -108,6 +159,28 @@ class IDFModel(IDF):
         return searchlist
 
     def eval(self, idfclass: str = None, idfname: str = None, field: str = None, strict: bool = True):
+        """
+        Eval.
+        
+        Parameters
+        ----------
+        idfclass : str
+            Input parameter `idfclass`.
+        
+        idfname : str
+            Input parameter `idfname`.
+        
+        field : str
+            Input parameter `field`.
+        
+        strict : bool
+            Input parameter `strict`.
+        
+        Returns
+        -------
+        Any
+            Return value from `eval`.
+        """
         searchresult = []
         if strict:
             if not idfclass:
@@ -146,6 +219,28 @@ class IDFModel(IDF):
         return searchresult
 
     def changeValue(self, idfclass, name, field, value):
+        """
+        Changevalue.
+        
+        Parameters
+        ----------
+        idfclass : Any
+            Input parameter `idfclass`.
+        
+        name : Any
+            Input parameter `name`.
+        
+        field : Any
+            Input parameter `field`.
+        
+        value : Any
+            Input parameter `value`.
+        
+        Returns
+        -------
+        Any
+            Return value from `changeValue`.
+        """
         obj = None
         for objNum in range(len(self.idfobjects[idfclass])):
             if name == self.idfobjects[idfclass][objNum].fieldvalues[1]:
@@ -156,15 +251,31 @@ class IDFModel(IDF):
             try:
                 if not obj.checkrange(field):
                     print(f'*********RangeError:{idfclass}=>{name}=>{field},value = {value}')
-                    return 2  # exceed
+                    return 2
             except:
                 pass
-            return 1  # success
+            return 1
         else:
             print(f'*********NotFoundError:{idfclass}=>{name}=>{field},value = {value}')
-            return 0  # notfound
+            return 0
 
     def search_object(self, search_name: list, searchresult: list):
+        """
+        Search object.
+        
+        Parameters
+        ----------
+        search_name : list
+            Input parameter `search_name`.
+        
+        searchresult : list
+            Input parameter `searchresult`.
+        
+        Returns
+        -------
+        Any
+            Return value from `search_object`.
+        """
         for _name in search_name:
             for key in self.objectdict.keys():
                 for i in range(len(self.objectdict[key])):
@@ -174,6 +285,22 @@ class IDFModel(IDF):
         return searchresult.tolist()
 
     def search_class(self, search_name: list, searchresult: list):
+        """
+        Search class.
+        
+        Parameters
+        ----------
+        search_name : list
+            Input parameter `search_name`.
+        
+        searchresult : list
+            Input parameter `searchresult`.
+        
+        Returns
+        -------
+        Any
+            Return value from `search_class`.
+        """
         for _name in search_name:
             for key in self.objectdict.keys():
                 if re.search(normal_pattern(_name), key, re.IGNORECASE) is not None:
@@ -183,6 +310,22 @@ class IDFModel(IDF):
         return searchresult.tolist()
 
     def search_field(self, search_name: list, searchresult: list):
+        """
+        Search field.
+        
+        Parameters
+        ----------
+        search_name : list
+            Input parameter `search_name`.
+        
+        searchresult : list
+            Input parameter `searchresult`.
+        
+        Returns
+        -------
+        Any
+            Return value from `search_field`.
+        """
         for _name in search_name:
             _name = re.sub(' ', '_', _name)
             for key in self.objectdict.keys():
@@ -195,6 +338,25 @@ class IDFModel(IDF):
         return searchresult.tolist()
 
     def search_in_result(self, search_name: list, searchresult: list, searchtype):
+        """
+        Search in result.
+        
+        Parameters
+        ----------
+        search_name : list
+            Input parameter `search_name`.
+        
+        searchresult : list
+            Input parameter `searchresult`.
+        
+        searchtype : Any
+            Input parameter `searchtype`.
+        
+        Returns
+        -------
+        Any
+            Return value from `search_in_result`.
+        """
         searchresult_new = []
         for _result in searchresult:
             if type(_result) == eppy.bunch_subclass.EpBunch:
@@ -220,6 +382,25 @@ class IDFModel(IDF):
         return searchresult_new
 
     def write(self, group_editor, folder: str = None, file_names=None):
+        """
+        Write.
+        
+        Parameters
+        ----------
+        group_editor : Any
+            Input parameter `group_editor`.
+        
+        folder : str
+            Input parameter `folder`.
+        
+        file_names : Any
+            Input parameter `file_names`.
+        
+        Returns
+        -------
+        Any
+            Return value from `write`.
+        """
         if type(group_editor) == IDFEditor:
             group_editor = IDFGroupEditor(group_editor)
         if type(group_editor) == list:
@@ -240,8 +421,6 @@ class IDFModel(IDF):
         for pNum in range(group_editor.params_num):
             success = 1
             for edit in group_editor.editors:
-                # edit.obj[edit.field] = edit.params[i]
-                # self.eval(edit.idfclass, edit.name).obj= edit.params[i]
                 success *= self.changeValue(edit.idfclass, edit.name, edit.field, edit.params[pNum])
             if success == 0:
                 continue
@@ -252,6 +431,37 @@ class IDFModel(IDF):
             print(f'\rWriting idf: remained tasks....{group_editor.params_num - pNum - 1}', end='')
 
     def simulation(self, epw, overwrite=True, local=True, process_count=4, stdout=sys.stdout, forceCPU=False, **kwargs):
+        """
+        Simulation.
+        
+        Parameters
+        ----------
+        epw : Any
+            Input parameter `epw`.
+        
+        overwrite : Any
+            Input parameter `overwrite`.
+        
+        local : Any
+            Input parameter `local`.
+        
+        process_count : Any
+            Input parameter `process_count`.
+        
+        stdout : Any
+            Input parameter `stdout`.
+        
+        forceCPU : Any
+            Input parameter `forceCPU`.
+        
+        **kwargs : Any
+            Input parameter `**kwargs`.
+        
+        Returns
+        -------
+        Any
+            Return value from `simulation`.
+        """
         if self.folder is None:
             raise Exception('You should play IDFModel.write() first before simulation')
         else:
@@ -272,6 +482,19 @@ class IDFModel(IDF):
         self.read_folder()
 
     def read_folder(self, folder: str = None):
+        """
+        Read folder.
+        
+        Parameters
+        ----------
+        folder : str
+            Input parameter `folder`.
+        
+        Returns
+        -------
+        Any
+            Return value from `read_folder`.
+        """
         if folder is not None:
             self.folder = folder
         self.sql = find_sql(self.folder)
@@ -282,6 +505,40 @@ class IDFModel(IDF):
 
     def group_result(self, variable: Variable, calculator, frequency=Monthly, cases=None,
                      alike=False, start_date=None, end_date=None, x='variables'):
+        """
+        Group result.
+        
+        Parameters
+        ----------
+        variable : Variable
+            Input parameter `variable`.
+        
+        calculator : Any
+            Input parameter `calculator`.
+        
+        frequency : Any
+            Input parameter `frequency`.
+        
+        cases : Any
+            Input parameter `cases`.
+        
+        alike : Any
+            Input parameter `alike`.
+        
+        start_date : Any
+            Input parameter `start_date`.
+        
+        end_date : Any
+            Input parameter `end_date`.
+        
+        x : Any
+            Input parameter `x`.
+        
+        Returns
+        -------
+        Any
+            Return value from `group_result`.
+        """
         if cases is not None:
             sql_list = []
             if isinstance(cases, int) or isinstance(cases, str):
@@ -304,6 +561,34 @@ class IDFModel(IDF):
 
     def case_result(self, variable: Variable, case: int, frequency=Monthly,
                     alike=False, start_date=None, end_date=None):
+        """
+        Case result.
+        
+        Parameters
+        ----------
+        variable : Variable
+            Input parameter `variable`.
+        
+        case : int
+            Input parameter `case`.
+        
+        frequency : Any
+            Input parameter `frequency`.
+        
+        alike : Any
+            Input parameter `alike`.
+        
+        start_date : Any
+            Input parameter `start_date`.
+        
+        end_date : Any
+            Input parameter `end_date`.
+        
+        Returns
+        -------
+        Any
+            Return value from `case_result`.
+        """
         all_result = []
         if not isinstance(case, list):
             case = [case]
@@ -314,6 +599,19 @@ class IDFModel(IDF):
         return all_result
 
     def variables_to_file(self, file_path: str):
+        """
+        Variables to file.
+        
+        Parameters
+        ----------
+        file_path : str
+            Input parameter `file_path`.
+        
+        Returns
+        -------
+        Any
+            Return value from `variables_to_file`.
+        """
         strr = ''
         for key in self.variables:
             strr += key + '\n'
@@ -323,15 +621,27 @@ class IDFModel(IDF):
             f.write(strr)
 
     def diff(self, model: IDFModel):
+        """
+        Diff.
+        
+        Parameters
+        ----------
+        model : IDFModel
+            Input parameter `model`.
+        
+        Returns
+        -------
+        Any
+            Return value from `diff`.
+        """
         searchresult = []
         for idfclass in self.idfobjects.keys():
             if (not str(idfclass).startswith('OUTPUT')) and (idfclass in model.idfobjects.keys()):
                 objls1 = [obj for obj in self.idfobjects[idfclass] if len(obj.fieldvalues) > 2]
                 objls2 = [obj for obj in model.idfobjects[idfclass] if len(obj.fieldvalues) > 2]
-                if len(objls1) * len(objls2) > 0 and len(objls1) == len(objls2):  # same num of obj
+                if len(objls1) * len(objls2) > 0 and len(objls1) == len(objls2):
                     for i, target_obj in enumerate(self.idfobjects[idfclass]):
                         idfName = str(target_obj.fieldvalues[1])
-                        # print(f"{idfclass}>{idfName}")
                         for fNum, field in enumerate(target_obj.objls):
                             if fNum < len(model.idfobjects[idfclass][i].fieldvalues):
                                 if target_obj.fieldvalues[fNum] != model.idfobjects[idfclass][i].fieldvalues[fNum]:
@@ -359,17 +669,6 @@ if __name__ == '__main__':
     model = IDFModel(r'project\baseline.idf',
                      epw=r'C:\EnergyPlusV22-2-0\WeatherData\CHN_Beijing.Beijing.545110_SWERA.epw')
     result = model.search('area', searchtype=FIELD)
-    # editor1 = IDFEditor(result[0], _sampler=sampler['random'], args=[100, 200, 10])
-    # editor2 = IDFEditor.from_idfobject(model.idfobjects['ZONE'][1], 'Floor_Area', _sampler=sampler['random'],
-    #                                   args=[110, 230, 8])
-    # editor3 = IDFEditor.from_idfobject(model.idfobjects['ZONE'][0], 'Volume', sampler=sampler['random'],
-    #                                   args=[110, 230, 12])
-    # editor4 = IDFEditor.from_idfobject(model.idfobjects['ZONE'][1], 'Volume', sampler=sampler['random'],
-    #                                   args=[110, 230, 8])
-    # geditor=IDFGroupEditor(editor1 , editor2).cross(IDFGroupEditor(editor3, editor4))
-    # geditor = IDFGroupEditor(editor1, editor2)
-    # geditor.to_csv('test.csv')
-    # model.write(geditor, r'test')
     model.simulation(epw=r'C:\EnergyPlusV22-2-0\WeatherData\CHN_Beijing.Beijing.545110_SWERA.epw')
     model.group_result(Variable("Cumulative", "Electricity:Facility", "J"), np.mean)
     model.case_result(Variable("Cumulative", "Electricity:Facility", "J"), 0)

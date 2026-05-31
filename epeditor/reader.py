@@ -12,6 +12,28 @@ class IDFResult:
     __slots__ = ['variables', 'frequency', 'dump', '__cache', 'sql_list', 'metaData']
 
     def __init__(self, variables, frequency, data, sql_list):
+        """
+          init  .
+        
+        Parameters
+        ----------
+        variables : Any
+            Input parameter `variables`.
+        
+        frequency : Any
+            Input parameter `frequency`.
+        
+        data : Any
+            Input parameter `data`.
+        
+        sql_list : Any
+            Input parameter `sql_list`.
+        
+        Returns
+        -------
+        None
+            Return value from `__init__`.
+        """
         self.variables = variables
         self.frequency = frequency
         self.dump = None
@@ -31,6 +53,14 @@ class IDFResult:
 
     @property
     def data(self):
+        """
+        Data.
+        
+        Returns
+        -------
+        Any
+            Return value from `data`.
+        """
         if self.dump is not None:
             return np.load(self.dump)[:, 1:]
         else:
@@ -38,6 +68,19 @@ class IDFResult:
 
     @classmethod
     def from_npy(cls, path):
+        """
+        From npy.
+        
+        Parameters
+        ----------
+        path : Any
+            Input parameter `path`.
+        
+        Returns
+        -------
+        Any
+            Return value from `from_npy`.
+        """
         data = np.load(path)
         variables = [eval(var) for var in np.load(path[:-4]) + '_variables.npy']
         frequency = len(data[0])
@@ -54,6 +97,19 @@ class IDFResult:
         return res
 
     def save(self, path: str = os.path.join(Working_Dir, generate_code(6) + '.npy')):
+        """
+        Save.
+        
+        Parameters
+        ----------
+        path : str
+            Input parameter `path`.
+        
+        Returns
+        -------
+        Any
+            Return value from `save`.
+        """
         if self.__cache is None and self.dump is not None:
             if path != self.dump:
                 shutil.copy(self.dump, path)
@@ -65,6 +121,22 @@ class IDFResult:
             self.__cache = None
 
     def to_csv(self, path: str, seq: str = ','):
+        """
+        To csv.
+        
+        Parameters
+        ----------
+        path : str
+            Input parameter `path`.
+        
+        seq : str
+            Input parameter `seq`.
+        
+        Returns
+        -------
+        Any
+            Return value from `to_csv`.
+        """
         streams = []
         if len(np.array(self.data).shape) == 2:
             streamData = np.array(self.__cache).T
@@ -80,6 +152,14 @@ class IDFResult:
             f.write('\n'.join(streams))
 
     def load(self):
+        """
+        Load.
+        
+        Returns
+        -------
+        Any
+            Return value from `load`.
+        """
         if self.__cache is None and self.dump is not None:
             self.__cache = np.load(self.dump)
             self.dump = None
@@ -88,6 +168,40 @@ class IDFResult:
 
 def get_group_result(sql_list: list, variables: Variable, calculator, frequency=Monthly,
                      alike=False, start_date=None, end_date=None, dump_path=None):
+    """
+    Get group result.
+    
+    Parameters
+    ----------
+    sql_list : list
+        Input parameter `sql_list`.
+    
+    variables : Variable
+        Input parameter `variables`.
+    
+    calculator : Any
+        Input parameter `calculator`.
+    
+    frequency : Any
+        Input parameter `frequency`.
+    
+    alike : Any
+        Input parameter `alike`.
+    
+    start_date : Any
+        Input parameter `start_date`.
+    
+    end_date : Any
+        Input parameter `end_date`.
+    
+    dump_path : Any
+        Input parameter `dump_path`.
+    
+    Returns
+    -------
+    Any
+        Return value from `get_group_result`.
+    """
     group_result = []
     if isinstance(variables, Variable):
         variables = [variables]
@@ -129,6 +243,40 @@ def get_group_result(sql_list: list, variables: Variable, calculator, frequency=
 
 def get_group_summary(sql_list: list, variables: Variable, calculator, frequency=Monthly,
                      alike=False, start_date=None, end_date=None, dump_path=None):
+    """
+    Get group summary.
+    
+    Parameters
+    ----------
+    sql_list : list
+        Input parameter `sql_list`.
+    
+    variables : Variable
+        Input parameter `variables`.
+    
+    calculator : Any
+        Input parameter `calculator`.
+    
+    frequency : Any
+        Input parameter `frequency`.
+    
+    alike : Any
+        Input parameter `alike`.
+    
+    start_date : Any
+        Input parameter `start_date`.
+    
+    end_date : Any
+        Input parameter `end_date`.
+    
+    dump_path : Any
+        Input parameter `dump_path`.
+    
+    Returns
+    -------
+    Any
+        Return value from `get_group_summary`.
+    """
     group_result,validSql = [],[]
     if isinstance(variables, Variable):
         variables = [variables]
@@ -167,6 +315,37 @@ def get_group_summary(sql_list: list, variables: Variable, calculator, frequency
     return IDFResult(variables, frequency, group_result, validSql)
 def get_case_result(sql: str, variables: Variable, frequency=Monthly,
                     alike=False, start_date=None, end_date=None, dump_path=None):
+    """
+    Get case result.
+    
+    Parameters
+    ----------
+    sql : str
+        Input parameter `sql`.
+    
+    variables : Variable
+        Input parameter `variables`.
+    
+    frequency : Any
+        Input parameter `frequency`.
+    
+    alike : Any
+        Input parameter `alike`.
+    
+    start_date : Any
+        Input parameter `start_date`.
+    
+    end_date : Any
+        Input parameter `end_date`.
+    
+    dump_path : Any
+        Input parameter `dump_path`.
+    
+    Returns
+    -------
+    Any
+        Return value from `get_case_result`.
+    """
     if isinstance(variables, Variable):
         variables = [variables]
     try:

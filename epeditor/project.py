@@ -15,6 +15,34 @@ class project:
     __slots__ = ['model', 'editor', 'groupeditor', 'generator', 'result', 'library', 'stdout','tempFolder']
 
     def __init__(self, model=None, editor=None, groupeditor=None, generator=None, result=None, stdout=sys.stdout):
+        """
+          init  .
+        
+        Parameters
+        ----------
+        model : Any
+            Input parameter `model`.
+        
+        editor : Any
+            Input parameter `editor`.
+        
+        groupeditor : Any
+            Input parameter `groupeditor`.
+        
+        generator : Any
+            Input parameter `generator`.
+        
+        result : Any
+            Input parameter `result`.
+        
+        stdout : Any
+            Input parameter `stdout`.
+        
+        Returns
+        -------
+        None
+            Return value from `__init__`.
+        """
         if model is None:
             self.model = None
         if editor is None:
@@ -41,6 +69,19 @@ class project:
 
     @classmethod
     def load(cls, savepath: str):
+        """
+        Load.
+        
+        Parameters
+        ----------
+        savepath : str
+            Input parameter `savepath`.
+        
+        Returns
+        -------
+        Any
+            Return value from `load`.
+        """
         tempFolder = os.path.join(os.path.dirname(savepath), '_epeditortemp')
         tempLoadFolder = os.path.join(os.path.dirname(savepath), '_epeditortemp\load')
         shutil.unpack_archive(savepath, tempLoadFolder, 'zip')
@@ -74,6 +115,19 @@ class project:
             return prj
 
     def save(self, savepath: str):
+        """
+        Save.
+        
+        Parameters
+        ----------
+        savepath : str
+            Input parameter `savepath`.
+        
+        Returns
+        -------
+        Any
+            Return value from `save`.
+        """
         saveTempFolder = os.path.join(os.path.dirname(savepath), '_epeditortemp\save')
         tempFolder = os.path.join(os.path.dirname(savepath), '_epeditortemp')
         self.tempFolder = tempFolder
@@ -108,10 +162,39 @@ class project:
         os.rename(savepath + '.zip', savepath)
 
     def reference_callback(self, msg):
+        """
+        Reference callback.
+        
+        Parameters
+        ----------
+        msg : Any
+            Input parameter `msg`.
+        
+        Returns
+        -------
+        Any
+            Return value from `reference_callback`.
+        """
         self.stdout.write(f'Extract reference finish. Class:{msg[0]} Found:{len(msg[1].values())}')
 
 
     def get_references(self, processes=4, stdout=sys.stdout):
+        """
+        Get references.
+        
+        Parameters
+        ----------
+        processes : Any
+            Input parameter `processes`.
+        
+        stdout : Any
+            Input parameter `stdout`.
+        
+        Returns
+        -------
+        Any
+            Return value from `get_references`.
+        """
         return None
         sys.stdout = stdout
         references = {}
@@ -144,6 +227,19 @@ class project:
         return references
 
     def node_reference(self, node: IDFsearchresult):
+        """
+        Node reference.
+        
+        Parameters
+        ----------
+        node : IDFsearchresult
+            Input parameter `node`.
+        
+        Returns
+        -------
+        Any
+            Return value from `node_reference`.
+        """
         nodestr = '>'.join([node.idfclass, node.name])
         referenced = self.library['references'][node.idfclass][node.name]
         referenced = [self.model.eval(nodstr) for nodstr in referenced]
@@ -156,6 +252,25 @@ class project:
 
 
 def _get_references(idfclass, objs, queue):
+    """
+     get references.
+    
+    Parameters
+    ----------
+    idfclass : Any
+        Input parameter `idfclass`.
+    
+    objs : Any
+        Input parameter `objs`.
+    
+    queue : Any
+        Input parameter `queue`.
+    
+    Returns
+    -------
+    Any
+        Return value from `_get_references`.
+    """
     ref_dict = {}
     for obj in objs:
         ref_list = IDFsearchresult(obj).referred_list(obj=False)
@@ -166,4 +281,17 @@ def _get_references(idfclass, objs, queue):
 
 
 def error_callback(error):
+    """
+    Error callback.
+    
+    Parameters
+    ----------
+    error : Any
+        Input parameter `error`.
+    
+    Returns
+    -------
+    Any
+        Return value from `error_callback`.
+    """
     print(f'****Process Error: {error}')

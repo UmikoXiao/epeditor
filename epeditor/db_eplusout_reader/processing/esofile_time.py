@@ -3,24 +3,37 @@ import logging
 from collections import namedtuple
 from datetime import datetime, timedelta
 
-from db_eplusout_reader.constants import RP, TS, A, D, H, M
-from db_eplusout_reader.exceptions import LeapYearMismatch, StartDayMismatch
+from ..constants import RP, TS, A, D, H, M
+from ..exceptions import LeapYearMismatch, StartDayMismatch
 
 EsoTimestamp = namedtuple("EsoTimestamp", "month day hour end_minute")
 
 
 def parse_eso_timestamp(year, month, day, hour, end_minute):
     """
-    Convert E+ time format to format acceptable by datetime module.
-
-    EnergyPlus date and time format is not compatible with
-    datetime.datetime module. This because hourly information
-    can be '24' and end minute can be '60' - which is not
-    allowed.
-
-    To get around the issue, logic is in place to
-    convert raw input into format as required for datetime
-    (or datetime like) module.
+    Parse eso timestamp.
+    
+    Parameters
+    ----------
+    year : Any
+        Input parameter `year`.
+    
+    month : Any
+        Input parameter `month`.
+    
+    day : Any
+        Input parameter `day`.
+    
+    hour : Any
+        Input parameter `hour`.
+    
+    end_minute : Any
+        Input parameter `end_minute`.
+    
+    Returns
+    -------
+    Any
+        Return value from `parse_eso_timestamp`.
     """
 
     if hour == 24 and end_minute == 60:
@@ -38,11 +51,17 @@ def parse_eso_timestamp(year, month, day, hour, end_minute):
 
 def get_month_n_days_from_cumulative(monthly_cumulative_days):
     """
-    Transform consecutive number of days in monthly data to actual number of days.
-
-    EnergyPlus monthly results report a total consecutive number of days for each day.
-    Raw data reports table as 31, 59..., this function calculates and returns
-    actual number of days for each month 31, 28...
+    Get month n days from cumulative.
+    
+    Parameters
+    ----------
+    monthly_cumulative_days : Any
+        Input parameter `monthly_cumulative_days`.
+    
+    Returns
+    -------
+    Any
+        Return value from `get_month_n_days_from_cumulative`.
     """
     old_num = monthly_cumulative_days.pop(0)
     m_actual_days = [old_num]
@@ -54,13 +73,40 @@ def get_month_n_days_from_cumulative(monthly_cumulative_days):
 
 
 def find_num_of_days_annual(ann_num_of_days, rp_num_of_days):
-    """Use runperiod data to calculate number of days for each annual period."""
+    """
+    Find num of days annual.
+    
+    Parameters
+    ----------
+    ann_num_of_days : Any
+        Input parameter `ann_num_of_days`.
+    
+    rp_num_of_days : Any
+        Input parameter `rp_num_of_days`.
+    
+    Returns
+    -------
+    Any
+        Return value from `find_num_of_days_annual`.
+    """
     days = rp_num_of_days[0] // len(ann_num_of_days)
     return [days for _ in ann_num_of_days]
 
 
 def get_num_of_days(cumulative_days):
-    """Split num of days and date."""
+    """
+    Get num of days.
+    
+    Parameters
+    ----------
+    cumulative_days : Any
+        Input parameter `cumulative_days`.
+    
+    Returns
+    -------
+    Any
+        Return value from `get_num_of_days`.
+    """
     num_of_days = {}
     for table, values in cumulative_days.items():
         if table == M:
@@ -76,7 +122,22 @@ def get_num_of_days(cumulative_days):
 
 
 def check_year_increment(first_step_data, current_step_data):
-    """Check if year value should be incremented inside environment table."""
+    """
+    Check year increment.
+    
+    Parameters
+    ----------
+    first_step_data : Any
+        Input parameter `first_step_data`.
+    
+    current_step_data : Any
+        Input parameter `current_step_data`.
+    
+    Returns
+    -------
+    Any
+        Return value from `check_year_increment`.
+    """
     if first_step_data is current_step_data:
         # do not increment first step
         return False
@@ -84,7 +145,22 @@ def check_year_increment(first_step_data, current_step_data):
 
 
 def generate_datetime_dates(raw_dates, year):
-    """Generate datetime index for a given period."""
+    """
+    Generate datetime dates.
+    
+    Parameters
+    ----------
+    raw_dates : Any
+        Input parameter `raw_dates`.
+    
+    year : Any
+        Input parameter `year`.
+    
+    Returns
+    -------
+    Any
+        Return value from `generate_datetime_dates`.
+    """
     dates = []
     for i in range(0, len(raw_dates)):
         # based on the first, current and previous
@@ -98,9 +174,37 @@ def generate_datetime_dates(raw_dates, year):
 
 
 def update_start_dates(dates):
-    """Set accurate first date for monthly+ tables."""
+    """
+    Update start dates.
+    
+    Parameters
+    ----------
+    dates : Any
+        Input parameter `dates`.
+    
+    Returns
+    -------
+    Any
+        Return value from `update_start_dates`.
+    """
 
     def set_start_date(orig, refs):
+        """
+        Set start date.
+        
+        Parameters
+        ----------
+        orig : Any
+            Input parameter `orig`.
+        
+        refs : Any
+            Input parameter `refs`.
+        
+        Returns
+        -------
+        Any
+            Return value from `set_start_date`.
+        """
         for ref in refs.values():
             orig[0] = ref[0].replace(hour=0, minute=0)
             return orig
@@ -116,7 +220,19 @@ def update_start_dates(dates):
 
 
 def get_n_days_from_cumulative(cumulative_days):
-    """Convert cumulative days to number of days pers step."""
+    """
+    Get n days from cumulative.
+    
+    Parameters
+    ----------
+    cumulative_days : Any
+        Input parameter `cumulative_days`.
+    
+    Returns
+    -------
+    Any
+        Return value from `get_n_days_from_cumulative`.
+    """
     if cumulative_days:
         # Separate number of days data if any M to RP table is available
         num_of_days = get_num_of_days(cumulative_days)
@@ -126,7 +242,28 @@ def get_n_days_from_cumulative(cumulative_days):
 
 
 def validate_year(year, is_leap, date, day):
-    """Check if date for given and day corresponds to specified year."""
+    """
+    Validate year.
+    
+    Parameters
+    ----------
+    year : Any
+        Input parameter `year`.
+    
+    is_leap : Any
+        Input parameter `is_leap`.
+    
+    date : Any
+        Input parameter `date`.
+    
+    day : Any
+        Input parameter `day`.
+    
+    Returns
+    -------
+    Any
+        Return value from `validate_year`.
+    """
     if calendar.isleap(year) is is_leap:
         test_datetime = datetime(year, date.month, date.day)
         test_day = test_datetime.strftime("%A")
@@ -162,7 +299,19 @@ def validate_year(year, is_leap, date, day):
 
 
 def is_leap_year_ts_to_d(raw_dates_arr):
-    """Check if first year is leap based on timestep, hourly or daily data."""
+    """
+    Is leap year ts to d.
+    
+    Parameters
+    ----------
+    raw_dates_arr : Any
+        Input parameter `raw_dates_arr`.
+    
+    Returns
+    -------
+    Any
+        Return value from `is_leap_year_ts_to_d`.
+    """
     for tup in raw_dates_arr:
         if (tup.month, tup.day) == (2, 29):
             return True
@@ -173,7 +322,28 @@ def is_leap_year_ts_to_d(raw_dates_arr):
 
 
 def seek_year(is_leap, date, day, max_year):
-    """Find first year matching given criteria."""
+    """
+    Seek year.
+    
+    Parameters
+    ----------
+    is_leap : Any
+        Input parameter `is_leap`.
+    
+    date : Any
+        Input parameter `date`.
+    
+    day : Any
+        Input parameter `day`.
+    
+    max_year : Any
+        Input parameter `max_year`.
+    
+    Returns
+    -------
+    Any
+        Return value from `seek_year`.
+    """
     for year in range(max_year, 0, -1):
         if day in ("SummerDesignDay", "WinterDesignDay"):
             logging.info("Sizing simulation, setting year to 2002.")
@@ -201,7 +371,31 @@ def get_allowed_years(
     max_year,
     n_samples=4,
 ):
-    """Get a sample of allowed years for given conditions."""
+    """
+    Get allowed years.
+    
+    Parameters
+    ----------
+    is_leap : Any
+        Input parameter `is_leap`.
+    
+    first_date : Any
+        Input parameter `first_date`.
+    
+    first_day : Any
+        Input parameter `first_day`.
+    
+    max_year : Any
+        Input parameter `max_year`.
+    
+    n_samples : Any
+        Input parameter `n_samples`.
+    
+    Returns
+    -------
+    Any
+        Return value from `get_allowed_years`.
+    """
     allowed_years = []
     for _ in range(n_samples):
         year = seek_year(is_leap, first_date, first_day, max_year)
@@ -211,12 +405,39 @@ def get_allowed_years(
 
 
 def get_lowest_frequency(all_frequencies):
-    """Find the shortest frequency from given ones."""
+    """
+    Get lowest frequency.
+    
+    Parameters
+    ----------
+    all_frequencies : Any
+        Input parameter `all_frequencies`.
+    
+    Returns
+    -------
+    Any
+        Return value from `get_lowest_frequency`.
+    """
     return next((freq for freq in (TS, H, D, M, A, RP) if freq in all_frequencies))
 
 
 def convert_raw_dates(raw_dates, year):
-    """Transform raw E+ date and time data into datetime.datetime objects."""
+    """
+    Convert raw dates.
+    
+    Parameters
+    ----------
+    raw_dates : Any
+        Input parameter `raw_dates`.
+    
+    year : Any
+        Input parameter `year`.
+    
+    Returns
+    -------
+    Any
+        Return value from `convert_raw_dates`.
+    """
     dates = {}
     for frequency, value in raw_dates.items():
         dates[frequency] = generate_datetime_dates(value, year)
@@ -228,7 +449,25 @@ def convert_raw_date_data(
     days_of_week,  #: Dict[str, List[str]],
     year,  #: Optional[int],
 ):  # -> Dict[str, List[datetime]]:
-    """Convert EnergyPlus dates into standard datetime format."""
+    """
+    Convert raw date data.
+    
+    Parameters
+    ----------
+    raw_dates : Any
+        Input parameter `raw_dates`.
+    
+    days_of_week : Any
+        Input parameter `days_of_week`.
+    
+    year : Any
+        Input parameter `year`.
+    
+    Returns
+    -------
+    Any
+        Return value from `convert_raw_date_data`.
+    """
     lowest_frequency = get_lowest_frequency(list(raw_dates.keys()))
     if lowest_frequency in {TS, H, D}:
         lowest_frequency_values = raw_dates[lowest_frequency]
@@ -244,3 +483,4 @@ def convert_raw_date_data(
         year = year if year else 2002
     dates = convert_raw_dates(raw_dates, year)
     return update_start_dates(dates)
+

@@ -3,14 +3,14 @@ from collections import defaultdict, namedtuple
 from datetime import datetime
 from functools import partial
 
-from db_eplusout_reader.constants import RP, TS, A, D, H, M
-from db_eplusout_reader.exceptions import (
+from ..constants import RP, TS, A, D, H, M
+from ..exceptions import (
     BlankLineError,
     IncompleteFile,
     InvalidLineSyntax,
 )
-from db_eplusout_reader.processing.esofile_time import EsoTimestamp
-from db_eplusout_reader.processing.raw_eso_data import RawOutputData
+from .esofile_time import EsoTimestamp
+from .raw_eso_data import RawOutputData
 
 ENVIRONMENT_LINE = 1
 TIMESTEP_OR_HOURLY_LINE = 2
@@ -23,20 +23,56 @@ Variable = namedtuple("Variable", "key type units")
 
 
 def get_eso_file_version(raw_version):
-    """Return eso file version as an integer (i.e.: 860, 890)."""
+    """
+    Get eso file version.
+    
+    Parameters
+    ----------
+    raw_version : Any
+        Input parameter `raw_version`.
+    
+    Returns
+    -------
+    Any
+        Return value from `get_eso_file_version`.
+    """
     version = raw_version.strip()
     start = version.index(" ")
     return int(version[(start + 1) : (start + 6)].replace(".", ""))
 
 
 def get_eso_file_timestamp(timestamp):
-    """Return date and time of the eso file generation as a Datetime."""
+    """
+    Get eso file timestamp.
+    
+    Parameters
+    ----------
+    timestamp : Any
+        Input parameter `timestamp`.
+    
+    Returns
+    -------
+    Any
+        Return value from `get_eso_file_timestamp`.
+    """
     timestamp = timestamp.split("=")[1].strip()
     return datetime.strptime(timestamp, "%Y.%m.%d %H:%M")
 
 
 def process_statement_line(line):
-    """Extract the version and time of the file generation."""
+    """
+    Process statement line.
+    
+    Parameters
+    ----------
+    line : Any
+        Input parameter `line`.
+    
+    Returns
+    -------
+    Any
+        Return value from `process_statement_line`.
+    """
     # Program Version,EnergyPlus, Version 8.9.0-40101eaafd, YMD=2020.01.08 16:15
     _, raw_version, timestamp = line.rsplit(",", 2)
     version = get_eso_file_version(raw_version)
@@ -46,21 +82,17 @@ def process_statement_line(line):
 
 def process_header_line(line):
     """
-    Process E+ dictionary line and populate period header dictionaries.
-
-    The goal is to process line syntax:
-        ID, number of results, key name - zone / environment, variable name [units] !timestamp [info] # noqa E501
-
+    Process header line.
+    
     Parameters
     ----------
-    line : str
-        A raw eso file line.
-
+    line : Any
+        Input parameter `line`.
+    
     Returns
     -------
-    tuple of (int, str, str, str, str)
-        Processed line tuple (ID, key name, variable name, units, frequency)
-
+    Any
+        Return value from `process_header_line`.
     """
     pattern = re.compile(r"^(\d+),(\d+),(.*?)(?:,(.*?) ?\[| ?\[)(.*?)\] !(\w*)")
 
@@ -78,22 +110,17 @@ def process_header_line(line):
 
 def read_header(eso_file):
     """
-    Read header dictionary of the eso file.
-
-    The file is being read line by line until the 'End of TableType Dictionary'
-    is reached. Raw line is processed and the line is added as an item to
-    the header_dict dictionary.
-
+    Read header.
+    
     Parameters
     ----------
-    eso_file : EsoFile
-        Opened EnergyPlus result file.
-
+    eso_file : Any
+        Input parameter `eso_file`.
+    
     Returns
     -------
-    dict of {str : dict of {Variable : int}}
-        A dictionary of eso file header line with populated values.
-
+    Any
+        Return value from `read_header`.
     """
     header = defaultdict(partial(defaultdict))
     while True:
@@ -112,30 +139,31 @@ def read_header(eso_file):
 
 def process_ts_h_d_frequency_line(line_id, data):
     """
-    Process sub-hourly, hourly and daily frequency line.
-
+    Process ts h d frequency line.
+    
     Parameters
     ----------
-    line_id : int
-        An id of the frequency.
-    data : list of str
-        Line line passed as a list of strings (without ID).
-
-    Note
-    ----
-    Data by given frequency:
-        timestep, hourly : [Day of Simulation, Month, Day of Month,
-                        DST Indicator, Hour, StartMinute, EndMinute, DayType]
-        daily : [Cumulative Day of Simulation, Month, Day of Month,DST Indicator, DayType]
-
+    line_id : Any
+        Input parameter `line_id`.
+    
+    data : Any
+        Input parameter `data`.
+    
     Returns
     -------
-        frequency identifier and numeric date time information and day of week..
-
+    Any
+        Return value from `process_ts_h_d_frequency_line`.
     """
 
     def parse_timestep_or_hourly_frequency():
-        """Process TS or H frequency entry and return frequency identifier."""
+        """
+        Parse timestep or hourly frequency.
+        
+        Returns
+        -------
+        Any
+            Return value from `parse_timestep_or_hourly_frequency`.
+        """
         # omit day of week in conversion
         items = [int(float(item)) for item in data[:-1]]
         frequency = EsoTimestamp(items[1], items[2], items[4], items[6])
@@ -146,7 +174,14 @@ def process_ts_h_d_frequency_line(line_id, data):
         return TS, frequency, data[-1].strip()
 
     def parse_daily_frequency():
-        """Populate D list and return identifier."""
+        """
+        Parse daily frequency.
+        
+        Returns
+        -------
+        Any
+            Return value from `parse_daily_frequency`.
+        """
         # omit day of week in in conversion
         i = [int(item) for item in data[:-1]]
         return D, EsoTimestamp(i[1], i[2], 0, 0), data[-1].strip()
@@ -160,38 +195,53 @@ def process_ts_h_d_frequency_line(line_id, data):
 
 def process_month_rp_frequency_line(line_id, data):
     """
-    Process monthly, annual or runperiod frequency line.
-
+    Process month rp frequency line.
+    
     Parameters
     ----------
-    line_id : int
-        An id of the frequency.
-    data : list of str
-        Line line passed as a list of strings (without ID).
-
-    Note
-    ----
-    Data by given frequency:
-        monthly : [Cumulative Day of Simulation, Month]
-        annual : [Year] (only when custom weather file is used) otherwise [int]
-        runperiod :  [Cumulative Day of Simulation]
-
+    line_id : Any
+        Input parameter `line_id`.
+    
+    data : Any
+        Input parameter `data`.
+    
     Returns
     -------
-        frequency identifier and numeric date time information and day of week.
-
+    Any
+        Return value from `process_month_rp_frequency_line`.
     """
 
     def parse_monthly_frequency():
-        """Populate M list and return identifier."""
+        """
+        Parse monthly frequency.
+        
+        Returns
+        -------
+        Any
+            Return value from `parse_monthly_frequency`.
+        """
         return M, EsoTimestamp(int(data[1]), 1, 0, 0), int(data[0])
 
     def parse_runperiod_frequency():
-        """Populate RP list and return identifier."""
+        """
+        Parse runperiod frequency.
+        
+        Returns
+        -------
+        Any
+            Return value from `parse_runperiod_frequency`.
+        """
         return RP, EsoTimestamp(1, 1, 0, 0), int(data[0])
 
     def parse_annual_frequency():
-        """Populate A list and return identifier."""
+        """
+        Parse annual frequency.
+        
+        Returns
+        -------
+        Any
+            Return value from `parse_annual_frequency`.
+        """
         return A, EsoTimestamp(1, 1, 0, 0), None
 
     categories = {
@@ -203,6 +253,19 @@ def process_month_rp_frequency_line(line_id, data):
 
 
 def split_raw_line(raw_line):
+    """
+    Split raw line.
+    
+    Parameters
+    ----------
+    raw_line : Any
+        Input parameter `raw_line`.
+    
+    Returns
+    -------
+    Any
+        Return value from `split_raw_line`.
+    """
     split_line = raw_line.split(",")
     line_id = int(split_line[0])
     line = split_line[1:]
@@ -210,6 +273,31 @@ def split_raw_line(raw_line):
 
 
 def process_frequency_line(line_id, line, all_raw_outputs, header, raw_outputs):
+    """
+    Process frequency line.
+    
+    Parameters
+    ----------
+    line_id : Any
+        Input parameter `line_id`.
+    
+    line : Any
+        Input parameter `line`.
+    
+    all_raw_outputs : Any
+        Input parameter `all_raw_outputs`.
+    
+    header : Any
+        Input parameter `header`.
+    
+    raw_outputs : Any
+        Input parameter `raw_outputs`.
+    
+    Returns
+    -------
+    Any
+        Return value from `process_frequency_line`.
+    """
     if line_id == ENVIRONMENT_LINE:
         # initialize variables for current environment
         environment_name = line[0].strip()
@@ -236,28 +324,23 @@ def process_frequency_line(line_id, line, all_raw_outputs, header, raw_outputs):
 
 def read_body(eso_file, highest_frequency_id, header):
     """
-    Read body of the eso file.
-
-    The line from eso file is processed line by line until the
-    'End of Data' is reached.
-
-    Index 1-5 for eso file generated prior to E+ 8.9 or 1-6 from E+ 8.9
-    further, indicates that line is an frequency.
-
+    Read body.
+    
     Parameters
     ----------
-    eso_file : file
-        Opened EnergyPlus result file.
-    highest_frequency_id : int
-        A maximum index defining an frequency (higher is considered a result)
-    header : dict of {str: dict of {Variable : list of int}}
-        Processed header dictionary.
-
+    eso_file : Any
+        Input parameter `eso_file`.
+    
+    highest_frequency_id : Any
+        Input parameter `highest_frequency_id`.
+    
+    header : Any
+        Input parameter `header`.
+    
     Returns
     -------
-    list of RawOutputData
-        Processed ESO file data.
-
+    Any
+        Return value from `read_body`.
     """
     all_raw_outputs = []
     raw_outputs = None
@@ -288,7 +371,19 @@ def read_body(eso_file, highest_frequency_id, header):
 
 
 def read_file(file):
-    """Read raw EnergyPlus output file."""
+    """
+    Read file.
+    
+    Parameters
+    ----------
+    file : Any
+        Input parameter `file`.
+    
+    Returns
+    -------
+    Any
+        Return value from `read_file`.
+    """
     # process first few standard lines, ignore timestamp
     version, _ = process_statement_line(next(file))
     last_standard_item_id = 6 if version >= 890 else 5
@@ -306,9 +401,22 @@ def read_file(file):
 
 
 def process_eso_file(file_path):
-    """Trigger eso file processing."""
+    """
+    Process eso file.
+    
+    Parameters
+    ----------
+    file_path : Any
+        Input parameter `file_path`.
+    
+    Returns
+    -------
+    Any
+        Return value from `process_eso_file`.
+    """
     try:
         with open(file_path, "r") as file:
             return read_file(file)
     except StopIteration:
         raise IncompleteFile("File '{}' is not complete!".format(file_path))
+

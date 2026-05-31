@@ -2,8 +2,8 @@ import csv
 import sys
 from collections import OrderedDict
 
-from db_eplusout_reader.exceptions import InvalidShape, NoResults
-from db_eplusout_reader.processing.esofile_reader import Variable
+from .exceptions import InvalidShape, NoResults
+from .processing.esofile_reader import Variable
 
 
 class ResultsDictionary(OrderedDict):
@@ -35,18 +35,47 @@ class ResultsDictionary(OrderedDict):
     """
 
     def __init__(self, frequency=""):
+        """
+          init  .
+        
+        Parameters
+        ----------
+        frequency : Any
+            Input parameter `frequency`.
+        
+        Returns
+        -------
+        None
+            Return value from `__init__`.
+        """
         super(ResultsDictionary, self).__init__()
         self.frequency = frequency
         self.time_series = None
 
     @property
     def _items(self):
+        """
+         items.
+        
+        Returns
+        -------
+        Any
+            Return value from `_items`.
+        """
         if self:
             return list(self.items())
         raise NoResults("Cannot get items, Results dictionary is empty. ")
 
     @property
     def scalar(self):
+        """
+        Scalar.
+        
+        Returns
+        -------
+        Any
+            Return value from `scalar`.
+        """
         try:
             return self._items[0][1][0]
         except IndexError:
@@ -54,35 +83,65 @@ class ResultsDictionary(OrderedDict):
 
     @property
     def first_array(self):
+        """
+        First array.
+        
+        Returns
+        -------
+        Any
+            Return value from `first_array`.
+        """
         return self._items[0][1]
 
     @property
     def first_variable(self):
+        """
+        First variable.
+        
+        Returns
+        -------
+        Any
+            Return value from `first_variable`.
+        """
         return self._items[0][0]
 
     @property
     def variables(self):
+        """
+        Variables.
+        
+        Returns
+        -------
+        Any
+            Return value from `variables`.
+        """
         return [v[0] for v in self._items]
 
     @property
     def arrays(self):
+        """
+        Arrays.
+        
+        Returns
+        -------
+        Any
+            Return value from `arrays`.
+        """
         return [v[1] for v in self._items]
 
     def to_table(self, explode_header=True):
         """
-        Get results in a table like format.
-
+        To table.
+        
         Parameters
         ----------
-        explode_header : bool
-            Split variable into multiple rows if true,
-            otherwise put one variable into one row.
-
+        explode_header : Any
+            Input parameter `explode_header`.
+        
         Returns
         -------
-        list of list of {float, str or datetime}
-            Table like nested list of lists.
-
+        Any
+            Return value from `to_table`.
         """
         return ResultsHandler.convert_dict_to_table(self, explode_header)
 
@@ -90,28 +149,32 @@ class ResultsDictionary(OrderedDict):
         self, path, explode_header=True, delimiter=",", append=False, title="", **kwargs
     ):
         """
-        Save results as a csv file.
-
+        To csv.
+        
         Parameters
         ----------
-        path : os.PathLike
-            Defines a file path of the csv file.
-        explode_header : bool
-            Split variable into multiple rows if true,
-            otherwise put one variable into one cell.
-        delimiter : str, default ","
-            Csv delimiter character.
-        append : bool, default False
-            Add results below the last row instead of replacing the .csv.
-        title : str
-            Add row with given text.
-        **kwargs
-            Key word arguments passed to csv writer.
-
+        path : Any
+            Input parameter `path`.
+        
+        explode_header : Any
+            Input parameter `explode_header`.
+        
+        delimiter : Any
+            Input parameter `delimiter`.
+        
+        append : Any
+            Input parameter `append`.
+        
+        title : Any
+            Input parameter `title`.
+        
+        **kwargs : Any
+            Input parameter `**kwargs`.
+        
         Returns
         -------
-            None
-
+        Any
+            Return value from `to_csv`.
         """
         table = ResultsHandler.convert_dict_to_table(self, explode_header)
         ResultsWriter.write_table_to_csv(
@@ -124,7 +187,19 @@ class ResultsHandler:
 
     @classmethod
     def _explode_header(cls, header):
-        """Split header into multiple rows."""
+        """
+         explode header.
+        
+        Parameters
+        ----------
+        header : Any
+            Input parameter `header`.
+        
+        Returns
+        -------
+        Any
+            Return value from `_explode_header`.
+        """
         header_rows = []
         for field in Variable._fields:
             row = []
@@ -135,7 +210,25 @@ class ResultsHandler:
 
     @classmethod
     def _insert_index_column(cls, table, index, offset):
-        """Add first column with header names and datetime / range data."""
+        """
+         insert index column.
+        
+        Parameters
+        ----------
+        table : Any
+            Input parameter `table`.
+        
+        index : Any
+            Input parameter `index`.
+        
+        offset : Any
+            Input parameter `offset`.
+        
+        Returns
+        -------
+        Any
+            Return value from `_insert_index_column`.
+        """
         index_column = ["" for _ in range(offset)] + index
         for i, item in enumerate(index_column):
             table[i].insert(0, item)
@@ -143,21 +236,20 @@ class ResultsHandler:
     @classmethod
     def convert_dict_to_table(cls, results_dictionary, explode_header):
         """
-        Convert dictionary like into array of arrays
-
+        Convert dict to table.
+        
         Parameters
         ----------
-        results_dictionary : ResultsDictionary
-            Results dictionary input.
-        explode_header : bool
-            Split variable into multiple rows if true,
-            otherwise put one variable into one row.
-
+        results_dictionary : Any
+            Input parameter `results_dictionary`.
+        
+        explode_header : Any
+            Input parameter `explode_header`.
+        
         Returns
         -------
-        list of list of {float, str or datetime}
-            Table like nested list of lists.
-
+        Any
+            Return value from `convert_dict_to_table`.
         """
         header = results_dictionary.variables
         n_rows = len(results_dictionary[header[0]])
@@ -174,7 +266,19 @@ class ResultsHandler:
 
     @classmethod
     def get_table_shape(cls, table):
-        """Read table dimensions."""
+        """
+        Get table shape.
+        
+        Parameters
+        ----------
+        table : Any
+            Input parameter `table`.
+        
+        Returns
+        -------
+        Any
+            Return value from `get_table_shape`.
+        """
         n_rows = len(table)
         iterator = iter(table)
         n_columns = len(next(iterator))
@@ -188,7 +292,34 @@ class ResultsWriter:
 
     @classmethod
     def write_table_to_csv(cls, table, path, delimiter, append, title, **kwargs):
-        """Write given table as a .csv file."""
+        """
+        Write table to csv.
+        
+        Parameters
+        ----------
+        table : Any
+            Input parameter `table`.
+        
+        path : Any
+            Input parameter `path`.
+        
+        delimiter : Any
+            Input parameter `delimiter`.
+        
+        append : Any
+            Input parameter `append`.
+        
+        title : Any
+            Input parameter `title`.
+        
+        **kwargs : Any
+            Input parameter `**kwargs`.
+        
+        Returns
+        -------
+        Any
+            Return value from `write_table_to_csv`.
+        """
         if sys.version_info[0] == 3:
             open_kwargs = {"mode": "a" if append else "w", "newline": ""}
         else:
@@ -199,3 +330,4 @@ class ResultsWriter:
                 writer.writerow([title])
             for row in table:
                 writer.writerow(row)
+

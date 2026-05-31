@@ -1,5 +1,13 @@
 _epeditortemp/
 .idea/
 **/__pycache__/
-**/__pycache__/
 **/idd/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Packaging helpers
+pip-wheel-metadata/

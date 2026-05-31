@@ -17,19 +17,17 @@ if not os.path.exists(epWorkingFolder):
 
 def scan(walkMethod):
     """
-    Perform a directory scan using a specified walk method and execute run files.
+    Scan.
     
     Parameters
     ----------
-    walkMethod : callable
-        A function that performs directory traversal, compatible with os.walk, 
-        taking a directory path as its argument and returning an iterator of 
-        (dirpath, dirnames, filenames).
+    walkMethod : Any
+        Input parameter `walkMethod`.
     
     Returns
     -------
-    None
-        This function does not return any value.
+    Any
+        Return value from `scan`.
     """
     time.sleep(random.randint(0, 10) / 10)
     print('Scanning folder...')
@@ -41,20 +39,17 @@ def scan(walkMethod):
 
 def randomWalk(root: str):
     """
-    Randomly traverse a directory tree, similar to os.walk, but with shuffled subdirectories.
+    Randomwalk.
     
     Parameters
     ----------
     root : str
-        The root directory path to start the random traversal from.
+        Input parameter `root`.
     
     Returns
     -------
-    generator
-        A generator that yields tuples of (dirpath, dirnames, filenames), where:
-        - dirpath is a string representing the current directory path,
-        - dirnames is a list of subdirectory names in the current directory (shuffled),
-        - filenames is a list of file names in the current directory.
+    Any
+        Return value from `randomWalk`.
     """
     """
     same function as os.walk(), but for random walking.
@@ -66,21 +61,20 @@ def randomWalk(root: str):
 
 def timeWalk(root: str, *, reverse: bool = False):
     """
-    Walk through a directory tree in order of directory modification time.
+    Timewalk.
     
     Parameters
     ----------
     root : str
-        The root directory to walk through.
-    reverse : bool, optional
-        If False, directories are walked from oldest to newest by modification time.
-        If True, directories are walked from newest to oldest. Default is False.
+        Input parameter `root`.
+    
+    reverse : bool
+        Input parameter `reverse`.
     
     Returns
     -------
-    generator
-        A generator that yields tuples of (dirpath, dirnames, filenames),
-        similar to os.walk(), but with subdirectories ordered by modification time.
+    Any
+        Return value from `timeWalk`.
     """
     """
     same function as os.walk(), but walk by edit time of the folder
@@ -88,42 +82,33 @@ def timeWalk(root: str, *, reverse: bool = False):
     :param reverse: False old->new, True new->old
     """
     for dirpath, dirnames, filenames in os.walk(root, topdown=True):
-        # 1. 拿到 (dirname, mtime) 列表
         dirs_with_time = []
         for d in dirnames:
             try:
                 mtime = os.path.getmtime(os.path.join(dirpath, d))
             except (FileNotFoundError, PermissionError):
-                mtime = 0  # 拿不到时间放最后
+                mtime = 0
             dirs_with_time.append((d, mtime))
 
-        # 2. 按时间排序
         dirs_with_time.sort(key=lambda t: t[1], reverse=reverse)
 
-        # 3. 替换原 dirnames 顺序（原地修改，os.walk 会按新顺序递归）
         dirnames[:] = [t[0] for t in dirs_with_time]
 
         yield dirpath, dirnames, filenames
 
 def runFile(folder):
     """
-    Run an EnergyPlus simulation from a specified folder.
+    Runfile.
     
     Parameters
     ----------
-    folder : str
-        Path to the folder containing the runit.runit file, EPW, IDF, and version (.vrs) files.
-        The folder should contain exactly one .epw file, one .idf file, and one .vrs file
-        (without the extension) specifying the EnergyPlus version.
+    folder : Any
+        Input parameter `folder`.
     
     Returns
     -------
-    int
-        Status code indicating result:
-        0 if simulation completed successfully,
-        -1 if required files (EPW, IDF, version) are missing,
-        -2 if 'runit.runit' file does not exist in the folder,
-        1 if an exception occurred during execution.
+    Any
+        Return value from `runFile`.
     """
     try:
         if not os.path.exists(os.path.join(folder, 'runit.runit')):
@@ -149,10 +134,6 @@ def runFile(folder):
             cwd += " -d " + "\"" + folder_local + "\""
             cwd += " " + "\"" + os.path.join(folder_local, idf) + "\""
             print(cwd)
-            # out, err, code = run_capture(cwd)
-            # print("STDOUT:", out)
-            # print("STDERR:", err)
-            # print("CODE:", code)
             run_live(cwd)
             for file in os.listdir(folder_local):
                 if not os.path.exists(os.path.join(folder, file)):
@@ -166,15 +147,39 @@ def runFile(folder):
 
 def run_capture(cmd, text=True):
     """
-    返回 (stdout, stderr, returncode)
-    text=True 表示自动解码成 str，不用再 .decode()
+    Run capture.
+    
+    Parameters
+    ----------
+    cmd : Any
+        Input parameter `cmd`.
+    
+    text : Any
+        Input parameter `text`.
+    
+    Returns
+    -------
+    Any
+        Return value from `run_capture`.
     """
     cp = subprocess.run(cmd, shell=True, capture_output=True, text=text)
     return cp.stdout, cp.stderr, cp.returncode
 
 
 def run_live(cmd):
-    """实时打印 stdout/stderr，最后返回 returncode"""
+    """
+    Run live.
+    
+    Parameters
+    ----------
+    cmd : Any
+        Input parameter `cmd`.
+    
+    Returns
+    -------
+    Any
+        Return value from `run_live`.
+    """
     return subprocess.run(cmd, shell=True, executable="/bin/bash").returncode
 
 

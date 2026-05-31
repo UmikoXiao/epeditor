@@ -1,6 +1,6 @@
-import db_eplusout_reader.constants
-from db_eplusout_reader.sql_reader import get_ids_dict,to_sql_frequency
-from db_eplusout_reader import Variable
+from . import db_eplusout_reader
+from .db_eplusout_reader.sql_reader import get_ids_dict,to_sql_frequency
+from .db_eplusout_reader import Variable
 import sqlite3
 import string
 import random
@@ -26,13 +26,20 @@ FIELD = 3
 
 def remove_chinese_characters(input_file, output_file=None):
     """
-    Remove all Chinese characters from a file and save with UTF-8 encoding.
-    Tries multiple encodings for better compatibility with different file formats.
-
-    Parameters:
-        input_file (str): Path to the input file
-        output_file (str, optional): Path to save the processed file.
-                                   Overwrites input file if not specified.
+    Remove chinese characters.
+    
+    Parameters
+    ----------
+    input_file : Any
+        Input parameter `input_file`.
+    
+    output_file : Any
+        Input parameter `output_file`.
+    
+    Returns
+    -------
+    Any
+        Return value from `remove_chinese_characters`.
     """
     # Set output file to input file if not specified
     output_file = output_file or input_file
@@ -77,6 +84,19 @@ def remove_chinese_characters(input_file, output_file=None):
         print(f"File saved to: {output_file} with utf-8 encoding")
 
 def get_variables(sql_file)->dict:
+    """
+    Get variables.
+    
+    Parameters
+    ----------
+    sql_file : Any
+        Input parameter `sql_file`.
+    
+    Returns
+    -------
+    dict
+        Return value from `get_variables`.
+    """
     sql_variables={}
     conn = sqlite3.connect(sql_file)
     frequency = [to_sql_frequency(freq) for freq in [TimeStep,Hourly,Daily,Monthly,Annually,RunPeriod]]
@@ -86,15 +106,63 @@ def get_variables(sql_file)->dict:
     conn.close()
     return sql_variables
 def generate_code(bit_num):
+    """
+    Generate code.
+    
+    Parameters
+    ----------
+    bit_num : Any
+        Input parameter `bit_num`.
+    
+    Returns
+    -------
+    Any
+        Return value from `generate_code`.
+    """
     all_str = string.digits + string.ascii_lowercase[0:6]
     code = ''.join([random.choice(all_str) for i in range(bit_num)])
     return '0x' + code
 
 def bar(process, total, dig=0,msg="Processing"):
+    """
+    Bar.
+    
+    Parameters
+    ----------
+    process : Any
+        Input parameter `process`.
+    
+    total : Any
+        Input parameter `total`.
+    
+    dig : Any
+        Input parameter `dig`.
+    
+    msg : Any
+        Input parameter `msg`.
+    
+    Returns
+    -------
+    Any
+        Return value from `bar`.
+    """
     q = round(process / total * 100, dig)
     print(f'\r[{msg}:', "*" * round(q / 2), '_' * (50 - round(q / 2)), q, '%]', end="")
 
 def get_version(idf_path):
+    """
+    Get version.
+    
+    Parameters
+    ----------
+    idf_path : Any
+        Input parameter `idf_path`.
+    
+    Returns
+    -------
+    Any
+        Return value from `get_version`.
+    """
     with open(idf_path, 'r',encoding='utf-8') as f:
         line = f.readline().strip('\n')
         while re.search('Version,', line, re.IGNORECASE) is None:
@@ -108,6 +176,19 @@ def get_version(idf_path):
         return version
 
 def check_installation(idf_path):
+    """
+    Check installation.
+    
+    Parameters
+    ----------
+    idf_path : Any
+        Input parameter `idf_path`.
+    
+    Returns
+    -------
+    Any
+        Return value from `check_installation`.
+    """
     version = get_version(idf_path)
     for pth in cPath:
         if re.search(version, pth) is not None:
@@ -115,9 +196,35 @@ def check_installation(idf_path):
     return False
 
 def innitilize_stdout(stdout):
+    """
+    Innitilize stdout.
+    
+    Parameters
+    ----------
+    stdout : Any
+        Input parameter `stdout`.
+    
+    Returns
+    -------
+    Any
+        Return value from `innitilize_stdout`.
+    """
     sys.stdout = stdout
 
 def get_idd(idf_path):
+    """
+    Get idd.
+    
+    Parameters
+    ----------
+    idf_path : Any
+        Input parameter `idf_path`.
+    
+    Returns
+    -------
+    Any
+        Return value from `get_idd`.
+    """
     version = get_version(idf_path)
     if version not in idd_files.keys():
         raise VersionError('Energy+ idd file not found, version unsupported. Required version: ' + version)
@@ -125,6 +232,19 @@ def get_idd(idf_path):
     return idd_files[version]
 
 def normal_pattern(pattern:str):
+    """
+    Normal pattern.
+    
+    Parameters
+    ----------
+    pattern : str
+        Input parameter `pattern`.
+    
+    Returns
+    -------
+    Any
+        Return value from `normal_pattern`.
+    """
     pattern=list(pattern)
     strange_pattern = list(r'$()*+.[]?\^{}|')
     for i in range(len(pattern)):
@@ -135,10 +255,44 @@ def normal_pattern(pattern:str):
 class redirect:
     content=''
     def write(self,str):
+        """
+        Write.
+        
+        Parameters
+        ----------
+        str : Any
+            Input parameter `str`.
+        
+        Returns
+        -------
+        Any
+            Return value from `write`.
+        """
         self.content += str
     def flush(self):
+        """
+        Flush.
+        
+        Returns
+        -------
+        Any
+            Return value from `flush`.
+        """
         self.content = ''
     def dump(self,path):
+        """
+        Dump.
+        
+        Parameters
+        ----------
+        path : Any
+            Input parameter `path`.
+        
+        Returns
+        -------
+        Any
+            Return value from `dump`.
+        """
         with open(path,'w+') as f:
             f.write(self.content)
             self.flush()
@@ -147,28 +301,97 @@ class hiddenPrint:
     original_stdout = sys.stdout
     original_stderr = sys.stderr
     def __enter__(self):
+        """
+          enter  .
+        
+        Returns
+        -------
+        Any
+            Return value from `__enter__`.
+        """
         r=redirect()
         sys.stdout = r
         sys.stderr = r
         return r
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+          exit  .
+        
+        Parameters
+        ----------
+        exc_type : Any
+            Input parameter `exc_type`.
+        
+        exc_val : Any
+            Input parameter `exc_val`.
+        
+        exc_tb : Any
+            Input parameter `exc_tb`.
+        
+        Returns
+        -------
+        Any
+            Return value from `__exit__`.
+        """
         print(f'Finish. Error: {exc_type} {exc_val} in {exc_tb}')
         sys.stdout = self.original_stdout
         sys.stderr = self.original_stderr
 
 class NotFoundError(Exception):
     def __init__(self, msg):
+        """
+          init  .
+        
+        Parameters
+        ----------
+        msg : Any
+            Input parameter `msg`.
+        
+        Returns
+        -------
+        None
+            Return value from `__init__`.
+        """
         self.msg = msg
 
     def __str__(self):
+        """
+          str  .
+        
+        Returns
+        -------
+        Any
+            Return value from `__str__`.
+        """
         return self.msg
 
 class VersionError(Exception):
     def __init__(self, msg):
+        """
+          init  .
+        
+        Parameters
+        ----------
+        msg : Any
+            Input parameter `msg`.
+        
+        Returns
+        -------
+        None
+            Return value from `__init__`.
+        """
         self.msg = msg
 
     def __str__(self):
+        """
+          str  .
+        
+        Returns
+        -------
+        Any
+            Return value from `__str__`.
+        """
         return self.msg
 
 
@@ -183,3 +406,4 @@ if __name__=='__main__':
         #raise RuntimeError('error')
 
     print('hello2')
+

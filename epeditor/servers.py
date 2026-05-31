@@ -17,6 +17,19 @@ if not os.path.exists(epWorkingFolder):
 
 
 def scan(walkMethod):
+    """
+    Scan.
+    
+    Parameters
+    ----------
+    walkMethod : Any
+        Input parameter `walkMethod`.
+    
+    Returns
+    -------
+    Any
+        Return value from `scan`.
+    """
     time.sleep(random.randint(0, 10) / 10)
     print('Scanning folder...')
     for dirpath, dirnames, filenames in walkMethod(NASFolder):
@@ -28,8 +41,17 @@ def scan(walkMethod):
 
 def randomWalk(root: str):
     """
-    same function as os.walk(), but for random walking.
-    :param root:   wolk folder
+    Randomwalk.
+    
+    Parameters
+    ----------
+    root : str
+        Input parameter `root`.
+    
+    Returns
+    -------
+    Any
+        Return value from `randomWalk`.
     """
     for dirpath, dirnames, filenames in os.walk(root, topdown=True):
         random.shuffle(dirnames)
@@ -38,31 +60,51 @@ def randomWalk(root: str):
 
 def timeWalk(root: str, *, reverse: bool = False):
     """
-    same function as os.walk(), but walk by edit time of the folder
-    :param root:   wolk folder
-    :param reverse: False old->new, True new->old
+    Timewalk.
+    
+    Parameters
+    ----------
+    root : str
+        Input parameter `root`.
+    
+    reverse : bool
+        Input parameter `reverse`.
+    
+    Returns
+    -------
+    Any
+        Return value from `timeWalk`.
     """
     for dirpath, dirnames, filenames in os.walk(root, topdown=True):
-        # 1. 拿到 (dirname, mtime) 列表
         dirs_with_time = []
         for d in dirnames:
             try:
                 mtime = os.path.getmtime(os.path.join(dirpath, d))
             except (FileNotFoundError, PermissionError):
-                mtime = 0  # 拿不到时间放最后
+                mtime = 0
             dirs_with_time.append((d, mtime))
 
-        # 2. 按时间排序
         dirs_with_time.sort(key=lambda t: t[1], reverse=reverse)
 
-        # 3. 替换原 dirnames 顺序（原地修改，os.walk 会按新顺序递归）
         dirnames[:] = [t[0] for t in dirs_with_time]
 
         yield dirpath, dirnames, filenames
 
 
 def runFile(folder):
-    "run a idf folder and create runit tag to avoid duplicated run a file."
+    """
+    Runfile.
+    
+    Parameters
+    ----------
+    folder : Any
+        Input parameter `folder`.
+    
+    Returns
+    -------
+    Any
+        Return value from `runFile`.
+    """
     try:
         if not os.path.exists(os.path.join(folder, 'runit.runit')):
             return -2
@@ -87,10 +129,6 @@ def runFile(folder):
             cwd += " -d " + "\"" + folder_local + "\""
             cwd += " " + "\"" + os.path.join(folder_local, idf) + "\""
             print(cwd)
-            # out, err, code = run_capture(cwd)
-            # print("STDOUT:", out)
-            # print("STDERR:", err)
-            # print("CODE:", code)
             run_live(cwd)
             for file in os.listdir(folder_local):
                 if not os.path.exists(os.path.join(folder, file)):
@@ -104,18 +142,51 @@ def runFile(folder):
 
 def run_capture(cmd, text=True):
     """
-    return (stdout, stderr, returncode) but not print anything
+    Run capture.
+    
+    Parameters
+    ----------
+    cmd : Any
+        Input parameter `cmd`.
+    
+    text : Any
+        Input parameter `text`.
+    
+    Returns
+    -------
+    Any
+        Return value from `run_capture`.
     """
     cp = subprocess.run(cmd, shell=True, capture_output=True, text=text)
     return cp.stdout, cp.stderr, cp.returncode
 
 
 def run_live(cmd):
-    """print stdout/stderr live and return a code"""
+    """
+    Run live.
+    
+    Parameters
+    ----------
+    cmd : Any
+        Input parameter `cmd`.
+    
+    Returns
+    -------
+    Any
+        Return value from `run_live`.
+    """
     return subprocess.run(cmd, shell=True, executable="/bin/bash").returncode
 
 
 def listing():
+    """
+    Listing.
+    
+    Returns
+    -------
+    Any
+        Return value from `listing`.
+    """
     if mode == 'random':
         walkMethod = randomWalk
     elif mode == 'time':

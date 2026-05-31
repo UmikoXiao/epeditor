@@ -1,10 +1,26 @@
 from collections import defaultdict
 
-from db_eplusout_reader.constants import RP, A, M
+from ..constants import RP, A, M
 
 
 class RawOutputData:
     def __init__(self, environment_name, header):
+        """
+          init  .
+        
+        Parameters
+        ----------
+        environment_name : Any
+            Input parameter `environment_name`.
+        
+        header : Any
+            Input parameter `header`.
+        
+        Returns
+        -------
+        None
+            Return value from `__init__`.
+        """
         self.environment_name = environment_name
         self.header = header
         (
@@ -15,6 +31,14 @@ class RawOutputData:
         ) = self.initialize_results_bins()
 
     def initialize_results_bins(self):
+        """
+        Initialize results bins.
+        
+        Returns
+        -------
+        Any
+            Return value from `initialize_results_bins`.
+        """
         outputs = defaultdict(dict)
         dates = {}
         cumulative_days = {}
@@ -30,5 +54,19 @@ class RawOutputData:
         return outputs, dates, cumulative_days, days_of_week
 
     def initialize_next_outputs_step(self, frequency):
+        """
+        Initialize next outputs step.
+        
+        Parameters
+        ----------
+        frequency : Any
+            Input parameter `frequency`.
+        
+        Returns
+        -------
+        Any
+            Return value from `initialize_next_outputs_step`.
+        """
         for value in self.outputs[frequency].values():
             value.append(float("nan"))
+

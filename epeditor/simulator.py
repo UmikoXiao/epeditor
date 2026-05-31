@@ -38,65 +38,59 @@ def run_with_cpu(
         cpu_index: Optional[int] = None
 ) -> str:
     """
-    Function for single task simulation
-    Wrapper around the EnergyPlus command line interface with CPU affinity support.
-    This is a more robust method from eppy.runner.run_functions.
-
-
+    Run with cpu.
+    
     Parameters
     ----------
     idf : Union[str, IDF]
-        Full/relative path to the IDF file, or an IDF object.
+        Input parameter `idf`.
+    
     weather : str
-        Full/relative path to the weather file.
-    output_directory : str, optional
-        Full/relative path to the output directory (default: "").
-    annual : bool, optional
-        Force annual simulation (default: False).
-    design_day : bool, optional
-        Force design-day-only simulation (default: False).
-    idd : Optional[str], optional
-        Path to Input Data Dictionary file (default: Energy+.idd in EnergyPlus directory).
-    epmacro : bool, optional
-        Run EPMacro prior to simulation (default: False).
-    expandobjects : bool, optional
-        Run ExpandObjects prior to simulation (default: False).
-    readvars : bool, optional
-        Run ReadVarsESO after simulation (default: False).
-    output_prefix : Optional[str], optional
-        Prefix for output file names (default: None, uses "eplus").
-    output_suffix : Optional[str], optional
-        Suffix style for output files (default: None, uses "L"):
-            L: Legacy (e.g., eplustbl.csv)
-            C: Capital (e.g., eplusTable.csv)
-            D: Dash (e.g., eplus-table.csv)
-    version : bool, optional
-        Display EnergyPlus version information (default: False).
-    verbose : str, optional
-        Verbosity level of runtime messages (default: "v"):
-            v: verbose
-            q: quiet
-            s: silent
-    ep_version : Optional[str], optional
-        EnergyPlus version for locating install directory. Required if passing IDF file path.
-    cpu_index : Optional[int], optional
-        Index of CPU core to allocate (default: None, uses all cores).
-
+        Input parameter `weather`.
+    
+    output_directory : str
+        Input parameter `output_directory`.
+    
+    annual : bool
+        Input parameter `annual`.
+    
+    design_day : bool
+        Input parameter `design_day`.
+    
+    idd : Optional[str]
+        Input parameter `idd`.
+    
+    epmacro : bool
+        Input parameter `epmacro`.
+    
+    expandobjects : bool
+        Input parameter `expandobjects`.
+    
+    readvars : bool
+        Input parameter `readvars`.
+    
+    output_prefix : Optional[str]
+        Input parameter `output_prefix`.
+    
+    output_suffix : Optional[str]
+        Input parameter `output_suffix`.
+    
+    version : bool
+        Input parameter `version`.
+    
+    verbose : str
+        Input parameter `verbose`.
+    
+    ep_version : Optional[str]
+        Input parameter `ep_version`.
+    
+    cpu_index : Optional[int]
+        Input parameter `cpu_index`.
+    
     Returns
     -------
     str
-        Status message ("OK" if successful).
-
-    Raises
-    ------
-    CalledProcessError
-        If EnergyPlus execution fails.
-    AttributeError
-        If ep_version is not provided when passing an IDF file path.
-    RuntimeError
-        If IDF file is not found or execution error occurs.
-    FileNotFoundError
-        If EnergyPlus executable is not found.
+        Return value from `run_with_cpu`.
     """
     args = locals().copy()
     verbose = args.pop("verbose").lower()
@@ -220,17 +214,17 @@ def run_with_cpu(
 
 def occupy(idf_path: str) -> bool:
     """
-    Check if IDF simulation is already in progress using a lock file.
-
+    Occupy.
+    
     Parameters
     ----------
     idf_path : str
-        Path to the IDF file.
-
+        Input parameter `idf_path`.
+    
     Returns
     -------
     bool
-        True if simulation is in progress (lock file exists), False otherwise.
+        Return value from `occupy`.
     """
     lock_file = f"{idf_path}start"
     if os.path.exists(lock_file):
@@ -242,19 +236,20 @@ def occupy(idf_path: str) -> bool:
 
 def make_eplaunch_options(idf: IDF, **kwargs: Any) -> Dict[str, Any]:
     """
-    Create simulation options matching EPLaunch behavior on Windows.
-
+    Make eplaunch options.
+    
     Parameters
     ----------
     idf : IDF
-        IDF object for simulation.
+        Input parameter `idf`.
+    
     **kwargs : Any
-        Additional options to override default values.
-
+        Input parameter `**kwargs`.
+    
     Returns
     -------
     Dict[str, Any]
-        Dictionary of simulation options.
+        Return value from `make_eplaunch_options`.
     """
     # Parse IDF version
     idfversion = idf.idfobjects['version'][0].Version_Identifier.split('.')
@@ -276,24 +271,34 @@ def make_eplaunch_options(idf: IDF, **kwargs: Any) -> Dict[str, Any]:
 
 def error_callback(error: Exception) -> None:
     """
-    Callback function for handling multiprocessing errors.
-
+    Error callback.
+    
     Parameters
     ----------
     error : Exception
-        Exception raised by the multiprocessing task.
+        Input parameter `error`.
+    
+    Returns
+    -------
+    None
+        Return value from `error_callback`.
     """
     print(f'****Process Error: {error}')
 
 
 def return_callback(msg: str) -> None:
     """
-    Callback function for handling successful multiprocessing task results.
-
+    Return callback.
+    
     Parameters
     ----------
     msg : str
-        Result message from the multiprocessing task.
+        Input parameter `msg`.
+    
+    Returns
+    -------
+    None
+        Return value from `return_callback`.
     """
     print(msg)
 
@@ -309,36 +314,38 @@ def simulate_file(
         **kwargs: Any
 ) -> str:
     """
-    Simulate a single IDF file with specified weather file and options.
-    allow stick a simualtion process to defined CPU.
-    A packup function to the run_with_cpu for better parallelization.
-
+    Simulate file.
+    
     Parameters
     ----------
     idf_path : str
-        Path to the IDF file.
+        Input parameter `idf_path`.
+    
     epw : str
-        Path to the weather (EPW) file.
-    idd : Optional[str], optional
-        Path to the IDD file (default: None, auto-detected).
-    overwrite : bool, optional
-        Overwrite existing results if True (default: False).
-    verbose : str, optional
-        Verbosity level (default: 'q'):
-            v: verbose
-            q: quiet
-            s: silent
-    cpu_index : Optional[int], optional
-        CPU core index to allocate (default: None).
-    long_dir : bool, optional
-        Use extended directory name (IDF + EPW name) if True (default: False).
+        Input parameter `epw`.
+    
+    idd : Optional[str]
+        Input parameter `idd`.
+    
+    overwrite : bool
+        Input parameter `overwrite`.
+    
+    verbose : str
+        Input parameter `verbose`.
+    
+    cpu_index : Optional[int]
+        Input parameter `cpu_index`.
+    
+    long_dir : bool
+        Input parameter `long_dir`.
+    
     **kwargs : Any
-        Additional options passed to run_with_cpu.
-
+        Input parameter `**kwargs`.
+    
     Returns
     -------
     str
-        Status message indicating simulation result.
+        Return value from `simulate_file`.
     """
 
     def _processing(
@@ -350,6 +357,34 @@ def simulate_file(
             **kwargs: Any
     ) -> str:
         # Check EnergyPlus installation
+        """
+         processing.
+        
+        Parameters
+        ----------
+        idf_path : str
+            Input parameter `idf_path`.
+        
+        epw : str
+            Input parameter `epw`.
+        
+        idd : Optional[str]
+            Input parameter `idd`.
+        
+        overwrite : bool
+            Input parameter `overwrite`.
+        
+        long_dir : bool
+            Input parameter `long_dir`.
+        
+        **kwargs : Any
+            Input parameter `**kwargs`.
+        
+        Returns
+        -------
+        str
+            Return value from `_processing`.
+        """
         if not check_installation(idf_path):
             return f'Energyplus Ver.{get_version(idf_path)} is not yet installed.'
 
@@ -431,26 +466,38 @@ def simulate_sequence(
         **kwargs: Any
 ) -> None:
     """
-    Simulate a sequence of IDF files sequentially on a specific CPU core.
-
+    Simulate sequence.
+    
     Parameters
     ----------
     idfs : List[Union[str, IDF]]
-        List of IDF file paths or IDF objects.
+        Input parameter `idfs`.
+    
     epw : str
-        Path to the weather (EPW) file.
-    idd : Optional[str], optional
-        Path to the IDD file (default: None).
-    overwrite : bool, optional
-        Overwrite existing results if True (default: False).
-    verbose : str, optional
-        Verbosity level (default: 'q').
-    cpu_index : Optional[int], optional
-        CPU core index to allocate (default: None).
-    long_dir : bool, optional
-        Use extended directory name if True (default: False).
+        Input parameter `epw`.
+    
+    idd : Optional[str]
+        Input parameter `idd`.
+    
+    overwrite : bool
+        Input parameter `overwrite`.
+    
+    verbose : str
+        Input parameter `verbose`.
+    
+    cpu_index : Optional[int]
+        Input parameter `cpu_index`.
+    
+    long_dir : bool
+        Input parameter `long_dir`.
+    
     **kwargs : Any
-        Additional options passed to simulate_file.
+        Input parameter `**kwargs`.
+    
+    Returns
+    -------
+    None
+        Return value from `simulate_sequence`.
     """
     t1 = time.time()
     for idf_item in idfs:
@@ -478,33 +525,41 @@ def simulate_local(
         **kwargs: Any
 ) -> int:
     """
-    Simulate IDF files locally with multiprocessing support.
-
+    Simulate local.
+    
     Parameters
     ----------
     idf_path : Union[str, IDF]
-        Path to single IDF file, IDF object, or directory of IDF files.
+        Input parameter `idf_path`.
+    
     epw : Union[str, List[str]]
-        Path to single EPW file or list of EPW files.
-    idd : Optional[str], optional
-        Path to the IDD file (default: None).
-    overwrite : bool, optional
-        Overwrite existing results if True (default: False).
-    stdout : Any, optional
-        Standard output stream (default: sys.stdout).
-    verbose : str, optional
-        Verbosity level (default: 'q').
-    prs_count : int, optional
-        Number of processes to use (default: 7).
-    forceCPU : bool, optional
-        Force CPU core allocation if True (default: False).
+        Input parameter `epw`.
+    
+    idd : Optional[str]
+        Input parameter `idd`.
+    
+    overwrite : bool
+        Input parameter `overwrite`.
+    
+    stdout : Any
+        Input parameter `stdout`.
+    
+    verbose : str
+        Input parameter `verbose`.
+    
+    prs_count : int
+        Input parameter `prs_count`.
+    
+    forceCPU : bool
+        Input parameter `forceCPU`.
+    
     **kwargs : Any
-        Additional options passed to simulate_file.
-
+        Input parameter `**kwargs`.
+    
     Returns
     -------
     int
-        1 if simulation completes successfully.
+        Return value from `simulate_local`.
     """
     sys.stdout = stdout
 
@@ -580,32 +635,32 @@ def simulate_cloud(
         timeouts: int = 1800
 ) -> int:
     """
-    Simulate IDF files on a remote cloud server by uploading and downloading.
-
+    Simulate cloud.
+    
     Parameters
     ----------
     idfs : Union[str, List[str]]
-        Path to directory of IDF files or list of IDF file paths.
+        Input parameter `idfs`.
+    
     epw : str
-        Path to the weather (EPW) file.
-    project_name : Optional[str], optional
-        Name of the remote project folder (default: None, auto-generated).
-    overwrite : bool, optional
-        Overwrite existing remote project if True (default: True).
-    remote_folder : str, optional
-        Path to remote storage folder (default: r"\\166.111.40.8\temp\epeditor\project").
-    timeouts : int, optional
-        Average timeout per task in seconds. It will be automatically adjusted during simulation (default: 1800).
-
+        Input parameter `epw`.
+    
+    project_name : Optional[str]
+        Input parameter `project_name`.
+    
+    overwrite : bool
+        Input parameter `overwrite`.
+    
+    remote_folder : str
+        Input parameter `remote_folder`.
+    
+    timeouts : int
+        Input parameter `timeouts`.
+    
     Returns
     -------
     int
-        1 if simulation completes successfully, 0 if remote access fails.
-
-    Raises
-    ------
-    FileNotFoundError
-        If IDF or EPW file is not found.
+        Return value from `simulate_cloud`.
     """
     t1 = time.time()
 
@@ -735,17 +790,17 @@ def simulate_cloud(
 
 def find_sql(idf_dir: str) -> Dict[str, str]:
     """
-    Recursively find all SQLite result files in a directory.
-
+    Find sql.
+    
     Parameters
     ----------
     idf_dir : str
-        Directory to search for SQL files.
-
+        Input parameter `idf_dir`.
+    
     Returns
     -------
     Dict[str, str]
-        Dictionary mapping case names to SQL file paths.
+        Return value from `find_sql`.
     """
     sql_files = {}
     for dirpath, _, filenames in os.walk(idf_dir):

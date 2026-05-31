@@ -21,13 +21,46 @@ with open(os.path.join(epPath, 'cloudServices.json'), 'r') as f:
 
 
 def host_up(ip: str, timeout=2) -> bool:
-    """ping test on the host server"""
+    """
+    Host up.
+    
+    Parameters
+    ----------
+    ip : str
+        Input parameter `ip`.
+    
+    timeout : Any
+        Input parameter `timeout`.
+    
+    Returns
+    -------
+    bool
+        Return value from `host_up`.
+    """
     cmd = f'ping -n 1 -w {timeout * 1000} {ip}'
     return subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL).returncode == 0
 
 
 def smb_port_open(ip: str, port=445, timeout=2) -> bool:
-    """test if smb port can be opened"""
+    """
+    Smb port open.
+    
+    Parameters
+    ----------
+    ip : str
+        Input parameter `ip`.
+    
+    port : Any
+        Input parameter `port`.
+    
+    timeout : Any
+        Input parameter `timeout`.
+    
+    Returns
+    -------
+    bool
+        Return value from `smb_port_open`.
+    """
     try:
         with socket.create_connection((ip, port), timeout=timeout):
             return True
@@ -37,7 +70,17 @@ def smb_port_open(ip: str, port=445, timeout=2) -> bool:
 
 def share_exists(ip: str) -> bool:
     """
-    test connectivity to smb server
+    Share exists.
+    
+    Parameters
+    ----------
+    ip : str
+        Input parameter `ip`.
+    
+    Returns
+    -------
+    bool
+        Return value from `share_exists`.
     """
     cmd = f'net view \\\\{ip}'
 
@@ -47,6 +90,22 @@ def share_exists(ip: str) -> bool:
 
 
 def test_connect(target_ip: str, timeout=2) -> bool:
+    """
+    Test connect.
+    
+    Parameters
+    ----------
+    target_ip : str
+        Input parameter `target_ip`.
+    
+    timeout : Any
+        Input parameter `timeout`.
+    
+    Returns
+    -------
+    bool
+        Return value from `test_connect`.
+    """
     if not host_up(target_ip):
         print('loss connection to', target_ip)
         return False
