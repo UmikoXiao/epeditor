@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "epeditor"
+version = "0.1.0"
+description = "Batch parameter-tuning, simulation, and result-reading tools for EnergyPlus"
+readme = "README.md"
+requires-python = ">=3.7"
+license = "MIT"
+authors = [
+  { name = "Tsinghua EP Team" }
+]
+dependencies = [
+  "numpy==1.21.6",
+  "eppy==0.5.63",
+  "PyQt5-Qt5==5.15.2",
+  "PyQt5-sip==12.11.0",
+  "PyQt5==5.15.4",
+  "matplotlib==3.5.3",
+  "requests==2.31.0"
+]
+keywords = ["energyplus", "idf", "simulation", "building-performance"]
+classifiers = [
+  "Programming Language :: Python :: 3",  "Operating System :: OS Independent"
+]
+
+[project.urls]
+Homepage = "https://github.com/UmikoXiao/epeditor"
+Repository = "https://github.com/UmikoXiao/epeditor"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["epeditor*"]
+exclude = ["ui*", "setup*", "doc*"]
+
+[tool.setuptools.package-data]
+epeditor = ["idd/*.idd"]
